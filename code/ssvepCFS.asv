@@ -9,9 +9,9 @@ function [data, expmnt] = ssvepCFS
 % [X] Test keyboard check (do we have problems with timing?).
 %     Apparently there is no lag!!
 % [X] Save to Github.
-% [X] Add overall fade-in & fade-out for entire block.
 % [ ] Verify frames presented: save conditions vectors.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
+% [ ] Add overall fade-in & fade-out for entire block.
 % [ ] Change place of Hz estimations (after PsychToolbox start).
 % [ ] Save mask, target, vergence bars positions: expmnt.
 
@@ -356,6 +356,7 @@ end
 DrawFormattedText(w, 'Imagenes listas.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
 Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
 Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+% Present vergence bars always:
 Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
 Screen('Flip', w);
 if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
@@ -421,8 +422,6 @@ block_end = 0;
 timestamps = nan(1, length(frames_conds));
 trial_responses = [];
 trial_response_times = [];
-trial_response = [];
-trial_response_time = [];
 KbQueueFlush();
 
 % Mask position and potency:
@@ -439,10 +438,7 @@ this_trial__target_position_xy = ...
 % Fade in:
 fade_in_frames = expmnt.fade_in_time * expmnt.monitor_hz;
 fade_in_cycle = round(linspace(0, this_trial__mask_alpha, fade_in_frames), 2);
-temp = Shuffle(1:expmnt.num_masks);
-temp = Expand(temp, mask_framerate, 1);
-fade_in_masks = temp(1:length(fade_in_cycle));
-clearvars temp;
+fade_in_masks = Shuffle(frames_masks);
 for frame = 1:length(fade_in_cycle)
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     % Draw masks:
@@ -482,25 +478,16 @@ for frame = 1:length(frames_conds)
 end
 
 % Fade out:
-fade_out_frames = expmnt.fade_out_time * expmnt.monitor_hz;
-fade_out_cycle = round(linspace(this_trial__mask_alpha, 0, fade_out_frames), 2);
-temp = Shuffle(1:expmnt.num_masks);
-temp = Expand(temp, mask_framerate, 1);
-fade_out_masks = temp(1:length(fade_out_cycle));
-for frame = 1:length(fade_out_cycle)
+fade_in_frames = expmnt.fade_in_time * expmnt.monitor_hz;
+fade_in_cycle = round(linspace(0, this_trial__mask_alpha, fade_in_frames), 2);
+fade_in_masks = Shuffle(frames_masks);
+for frame = 1:length(fade_in_cycle)
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     % Draw masks:
-    Screen('DrawTextures', w, masksTex(fade_out_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_out_cycle(frame));
+    Screen('DrawTextures', w, masksTex(fade_in_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_in_cycle(frame));
     Screen('Flip', w);
 end
 
-
-% End of block:
-DrawFormattedText(w, 'Fin de bloque.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
-Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
-Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-Screen('Flip', w);
 
 
 %% Save data
