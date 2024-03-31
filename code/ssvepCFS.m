@@ -10,7 +10,8 @@ function [data, expmnt] = ssvepCFS
 %     Apparently there is no lag!!
 % [X] Save to Github.
 % [X] Add overall fade-in & fade-out for entire block.
-% [ ] Verify frames presented: save conditions vectors.
+% [X] Add values for mask alpha levels.
+% [X] Verify frames presented: save conditions vectors.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
 % [ ] Change place of Hz estimations (after PsychToolbox start).
 % [ ] Save mask, target, vergence bars positions: expmnt.
@@ -56,6 +57,10 @@ expmnt.mask_width = 400;
 expmnt.mask_height = 400;
 expmnt.num_masks = 500;
 
+expmnt.default_alpha_masks_supp1   = 0.05;
+expmnt.default_alpha_masks_supp2   = 0.15;
+expmnt.default_alpha_masks_supp3   = 0.50;
+
 expmnt.im_white    = 255;
 expmnt.img_contrast_sd         = 12; % approx 20% Michelson contrast. Need to check. %%%  EDIT BEFORE EXP. %%% 
 expmnt.cfs_masks_contrast_sd   = 82; % the mean of the original function make_mondrian_masks
@@ -66,6 +71,8 @@ expmnt.stimuli_height      = 133;
 
 expmnt.position_task_offset    = 0;
 expmnt.vergence_bar = [0, 0, 32, 240];
+expmnt.vergence_bar_scale = 2;
+expmnt.vergence_bar = expmnt.vergence_bar .* expmnt.vergence_bar_scale;
 expmnt.show_vergence_bars = 1;
 expmnt.vergence_bar_file       = '../stimuli/texture_vertical.bmp';
 expmnt.dir_of_stereograms     = '../stimuli/stereograms';
@@ -211,7 +218,7 @@ Screen('HideCursorHelper', w);
 
 
 %% Duty cycle for sinusoidal modulation
-Hz = 60;
+Hz = expmnt.monitor_hz;
 flickerRate = expmnt.baseline_hz; % 6 Hz
 cycle = round(linspace(0,360,Hz));                  %round(1/(frames)*1000)));
 cycle = repmat(cycle,[1,expmnt.trial_duration,1]);
@@ -430,7 +437,7 @@ this_trial__xy_target_masks_displacement = ...
             [expmnt.x_displacement, 0, expmnt.x_displacement, 0];
 this_trial__masks_position_xy =...
     mask_box_right + expmnt.cfs_1mirror_set_right_prop_of_displace * this_trial__xy_target_masks_displacement;
-this_trial__mask_alpha = 1;
+this_trial__mask_alpha = expmnt.default_alpha_masks_supp2;
 
 % Target position:
 this_trial__target_position_xy = ...
@@ -515,17 +522,45 @@ data.baseline_framerate = baseline_framerate;
 data.mask_framerate = mask_framerate;
 data.oddball_framerate = oddball_framerate;
 
+expmnt.onscreen_positions.vergence_bars_positions = vergence_bars_positions;
+expmnt.onscreen_positions.fix_position_left = fix_position_left;
+expmnt.onscreen_positions.fix_position_right = fix_position_right;
+expmnt.onscreen_positions.textBox = textBox;
+expmnt.onscreen_positions.stereogram_box = stereogram_box;
+expmnt.onscreen_positions.this_trial__masks_position_xy = this_trial__masks_position_xy;
+expmnt.onscreen_positions.this_trial__target_position_xy = this_trial__target_position_xy;
+expmnt.onscreen_positions.ifi = ifi;
+expmnt.onscreen_positions.screenXpixels = screenXpixels;
+expmnt.onscreen_positions.screenYpixels = screenYpixels;
 
 
 %% Close PsychToolbox
 
 % Release keyboard with PsychToolbox, wait and clear workspace:
-	KbQueueRelease();
-	KbReleaseWait();
-	WaitSecs(1);
-	sca;
-    clear Screen;
-	ListenChar(0); % Restore keyboard output to Matlab
+KbQueueRelease();
+KbReleaseWait();
+WaitSecs(1);
+sca;
+clear Screen;
+ListenChar(0); % Restore keyboard output to Matlab
+
+%% Plot test of cycles:
+figure;
+subplot(4,1,1);
+plot(data.frames_faces);
+title('Unfamiliar faces: 1-72, Familiar faces: 73-144');
+subplot(4,1,2);
+plot(data.frames_faces<73); 
+title(sprintf('Unfamiliar faces: %.02f Hz', expmnt.baseline_hz));
+ylim([-0.1, 1.1]);
+subplot(4,1,3);
+plot(data.frames_faces>72); 
+title(sprintf('Familiar faces: %.02f Hz', expmnt.baseline_hz/expmnt.odd_frequency));
+ylim([-0.1, 1.1]);
+subplot(4,1,4);
+plot(diff(data.frames_masks));
+title(sprintf('CFS Masks: %.02f Hz', expmnt.masks_hz));
+ylim([-0.1, 1.1]);
 
 
 end

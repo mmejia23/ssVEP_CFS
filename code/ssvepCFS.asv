@@ -9,9 +9,10 @@ function [data, expmnt] = ssvepCFS
 % [X] Test keyboard check (do we have problems with timing?).
 %     Apparently there is no lag!!
 % [X] Save to Github.
+% [X] Add overall fade-in & fade-out for entire block.
+% [X] Add values for mask alpha levels.
 % [ ] Verify frames presented: save conditions vectors.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
-% [ ] Add overall fade-in & fade-out for entire block.
 % [ ] Change place of Hz estimations (after PsychToolbox start).
 % [ ] Save mask, target, vergence bars positions: expmnt.
 
@@ -55,6 +56,10 @@ expmnt.stimuli_height = 300;
 expmnt.mask_width = 400;
 expmnt.mask_height = 400;
 expmnt.num_masks = 500;
+
+expmnt.default_alpha_masks_supp1   = 0.05;
+expmnt.default_alpha_masks_supp2   = 0.15;
+expmnt.default_alpha_masks_supp3   = 0.50;
 
 expmnt.im_white    = 255;
 expmnt.img_contrast_sd         = 12; % approx 20% Michelson contrast. Need to check. %%%  EDIT BEFORE EXP. %%% 
@@ -356,7 +361,6 @@ end
 DrawFormattedText(w, 'Imagenes listas.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
 Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
 Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-% Present vergence bars always:
 Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
 Screen('Flip', w);
 if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
@@ -422,6 +426,8 @@ block_end = 0;
 timestamps = nan(1, length(frames_conds));
 trial_responses = [];
 trial_response_times = [];
+trial_response = [];
+trial_response_time = [];
 KbQueueFlush();
 
 % Mask position and potency:
@@ -429,7 +435,7 @@ this_trial__xy_target_masks_displacement = ...
             [expmnt.x_displacement, 0, expmnt.x_displacement, 0];
 this_trial__masks_position_xy =...
     mask_box_right + expmnt.cfs_1mirror_set_right_prop_of_displace * this_trial__xy_target_masks_displacement;
-this_trial__mask_alpha = 1;
+this_trial__mask_alpha = expmnt.default_alpha_masks_supp2;
 
 % Target position:
 this_trial__target_position_xy = ...
@@ -438,7 +444,10 @@ this_trial__target_position_xy = ...
 % Fade in:
 fade_in_frames = expmnt.fade_in_time * expmnt.monitor_hz;
 fade_in_cycle = round(linspace(0, this_trial__mask_alpha, fade_in_frames), 2);
-fade_in_masks = Shuffle(frames_masks);
+temp = Shuffle(1:expmnt.num_masks);
+temp = Expand(temp, mask_framerate, 1);
+fade_in_masks = temp(1:length(fade_in_cycle));
+clearvars temp;
 for frame = 1:length(fade_in_cycle)
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     % Draw masks:
@@ -478,16 +487,25 @@ for frame = 1:length(frames_conds)
 end
 
 % Fade out:
-fade_in_frames = expmnt.fade_in_time * expmnt.monitor_hz;
-fade_in_cycle = round(linspace(0, this_trial__mask_alpha, fade_in_frames), 2);
-fade_in_masks = Shuffle(frames_masks);
-for frame = 1:length(fade_in_cycle)
+fade_out_frames = expmnt.fade_out_time * expmnt.monitor_hz;
+fade_out_cycle = round(linspace(this_trial__mask_alpha, 0, fade_out_frames), 2);
+temp = Shuffle(1:expmnt.num_masks);
+temp = Expand(temp, mask_framerate, 1);
+fade_out_masks = temp(1:length(fade_out_cycle));
+for frame = 1:length(fade_out_cycle)
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     % Draw masks:
-    Screen('DrawTextures', w, masksTex(fade_in_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_in_cycle(frame));
+    Screen('DrawTextures', w, masksTex(fade_out_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_out_cycle(frame));
     Screen('Flip', w);
 end
 
+
+% End of block:
+DrawFormattedText(w, 'Fin de bloque.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
+Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+Screen('Flip', w);
 
 
 %% Save data
@@ -507,12 +525,27 @@ data.oddball_framerate = oddball_framerate;
 %% Close PsychToolbox
 
 % Release keyboard with PsychToolbox, wait and clear workspace:
-	KbQueueRelease();
-	KbReleaseWait();
-	WaitSecs(1);
-	sca;
-    clear Screen;
-	ListenChar(0); % Restore keyboard output to Matlab
+KbQueueRelease();
+KbReleaseWait();
+WaitSecs(1);
+sca;
+clear Screen;
+ListenChar(0); % Restore keyboard output to Matlab
+
+%% Plot test of cycles:
+figure;
+subplot(4,1,1);
+plot(data.frames_faces);
+title();
+subplot(4,1,2);
+plot(data.frames_faces<73); 
+ylim([-0.1, 1.1]);
+subplot(4,1,3);
+plot(data.frames_faces>72); 
+ylim([-0.1, 1.1]);
+subplot(4,1,4);
+plot(diff(data.frames_masks));
+ylim([-0.1, 1.1]);
 
 
 end
