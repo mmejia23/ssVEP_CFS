@@ -11,10 +11,10 @@ function [data, expmnt] = ssvepCFS
 % [X] Save to Github.
 % [X] Add overall fade-in & fade-out for entire block.
 % [X] Add values for mask alpha levels.
-% [ ] Verify frames presented: save conditions vectors.
+% [X] Verify frames presented: save conditions vectors.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
 % [ ] Change place of Hz estimations (after PsychToolbox start).
-% [ ] Save mask, target, vergence bars positions: expmnt.
+% [X] Save mask, target, vergence bars positions: expmnt.
 
 clc;
 fprintf(    '_________________________________________________________________________\n');
@@ -71,6 +71,8 @@ expmnt.stimuli_height      = 133;
 
 expmnt.position_task_offset    = 0;
 expmnt.vergence_bar = [0, 0, 32, 240];
+expmnt.vergence_bar_scale = 1.5;
+expmnt.vergence_bar = expmnt.vergence_bar .* expmnt.vergence_bar_scale;
 expmnt.show_vergence_bars = 1;
 expmnt.vergence_bar_file       = '../stimuli/texture_vertical.bmp';
 expmnt.dir_of_stereograms     = '../stimuli/stereograms';
@@ -216,7 +218,7 @@ Screen('HideCursorHelper', w);
 
 
 %% Duty cycle for sinusoidal modulation
-Hz = 60;
+Hz = expmnt.monitor_hz;
 flickerRate = expmnt.baseline_hz; % 6 Hz
 cycle = round(linspace(0,360,Hz));                  %round(1/(frames)*1000)));
 cycle = repmat(cycle,[1,expmnt.trial_duration,1]);
@@ -520,6 +522,16 @@ data.baseline_framerate = baseline_framerate;
 data.mask_framerate = mask_framerate;
 data.oddball_framerate = oddball_framerate;
 
+expmnt.onscreen_positions.vergence_bars_positions = vergence_bars_positions;
+expmnt.onscreen_positions.fix_position_left = fix_position_left;
+expmnt.onscreen_positions.fix_position_right = fix_position_right;
+expmnt.onscreen_positions.textBox = textBox;
+expmnt.onscreen_positions.stereogram_box = stereogram_box;
+expmnt.onscreen_positions.this_trial__masks_position_xy = this_trial__masks_position_xy;
+expmnt.onscreen_positions.this_trial__target_position_xy = this_trial__target_position_xy;
+expmnt.onscreen_positions.ifi = ifi;
+expmnt.onscreen_positions.screenXpixels = screenXpixels;
+expmnt.onscreen_positions.screenYpixels = screenYpixels;
 
 
 %% Close PsychToolbox
@@ -536,15 +548,18 @@ ListenChar(0); % Restore keyboard output to Matlab
 figure;
 subplot(4,1,1);
 plot(data.frames_faces);
-title();
+title('Unfamiliar faces: 1-72, Familiar faces: 73-144');
 subplot(4,1,2);
 plot(data.frames_faces<73); 
+title(sprintf('Unfamiliar faces: %.02f Hz', expmnt.baseline_hz));
 ylim([-0.1, 1.1]);
 subplot(4,1,3);
 plot(data.frames_faces>72); 
+title(sprintf('Familiar faces: %.02f Hz', expmnt.baseline_hz/expmnt.odd_frequency));
 ylim([-0.1, 1.1]);
 subplot(4,1,4);
 plot(diff(data.frames_masks));
+title(sprintf('CFS Masks: %.02f Hz', expmnt.masks_hz));
 ylim([-0.1, 1.1]);
 
 
@@ -576,7 +591,8 @@ function [vergence_bars_positions, fix_position_left, fix_position_right, textBo
         vergence_bar_right = expmnt.vergence_bar; % Original size: [0, 0, 16, 120]
         % This offplace is the same for both eyes, shouln't be, should be
         % smaller for left-eye when diff size: **********   PEND  **************
-        vergence_bar_offplace_left =  expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio/2 + (20/(expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio))*expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio;
+        vergence_bar_offplace_left =  expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio/2 +...
+            (20/(expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio))*expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio;
         vergence_bar_offplace_right = expmnt.mask_width/2 + (20/expmnt.mask_width)*expmnt.mask_width;
         vergence_bar_left =  CenterRectOnPointd(vergence_bar_left, xCenter, yCenter);
         vergence_bar_right = CenterRectOnPointd(vergence_bar_right, xCenter, yCenter);

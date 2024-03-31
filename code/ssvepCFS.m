@@ -12,9 +12,11 @@ function [data, expmnt] = ssvepCFS
 % [X] Add overall fade-in & fade-out for entire block.
 % [X] Add values for mask alpha levels.
 % [X] Verify frames presented: save conditions vectors.
-% [ ] Adjust mask and faces sizes: based on visual angle degrees.
-% [ ] Change place of Hz estimations (after PsychToolbox start).
+% [X] Add stereogram at first screen for position calibration.
 % [X] Save mask, target, vergence bars positions: expmnt.
+% [X] Change place of Hz estimations (after PsychToolbox start).
+% [ ] Adjust mask and faces sizes: based on visual angle degrees.
+% [ ] Save data from each block at the end of each block. BIDS format.
 
 clc;
 fprintf(    '_________________________________________________________________________\n');
@@ -37,6 +39,7 @@ addpath('C:\Users\cthul\Dropbox\PROYECTOS\0-PhD\MLtoolboxes\SHINEtoolbox');
 %% Set experiment variables
 dir_images = '../stimuli/caras_experimento/';
 
+% Dynamics
 expmnt.masks_hz =       8.5; % approx, is defined according to monitor framerate
 expmnt.baseline_hz =    6;
 expmnt.trial_duration = 60;
@@ -44,18 +47,19 @@ expmnt.fade_in_time =   2;
 expmnt.fade_out_time =  2;
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
 
-expmnt.monitor_hz = 60;
-mask_framerate = round(expmnt.monitor_hz/expmnt.masks_hz);
-baseline_framerate = round(expmnt.monitor_hz/expmnt.baseline_hz);
-oddball_framerate = baseline_framerate*expmnt.odd_frequency;
+% Screen sizes
+expmnt.stimuli_width =          100;
+expmnt.stimuli_height =         133;
 
-expmnt.stimuli_width = 150;
-expmnt.stimuli_height = 300;
+% Masks box
+expmnt.mask_width =             240;
+expmnt.mask_height =            240;
+expmnt.num_masks =              500;
 
-% Masks box:
-expmnt.mask_width = 400;
-expmnt.mask_height = 400;
-expmnt.num_masks = 500;
+% Vergence bars
+expmnt.vergence_bar_width =     32;
+expmnt.vergence_bar_height =    240;
+expmnt.vergence_bar = [0, 0, expmnt.vergence_bar_width, expmnt.vergence_bar_height];
 
 expmnt.default_alpha_masks_supp1   = 0.05;
 expmnt.default_alpha_masks_supp2   = 0.15;
@@ -66,13 +70,7 @@ expmnt.img_contrast_sd         = 12; % approx 20% Michelson contrast. Need to ch
 expmnt.cfs_masks_contrast_sd   = 82; % the mean of the original function make_mondrian_masks
 expmnt.gaussian_envelope   = 0; % If blur edges with gaussian envelope.
 
-expmnt.stimuli_width       = 100; %150x200; Best: 120x160, for CFS smller than mask, and for having enough screen for crowding.
-expmnt.stimuli_height      = 133;
-
 expmnt.position_task_offset    = 0;
-expmnt.vergence_bar = [0, 0, 32, 240];
-expmnt.vergence_bar_scale = 2;
-expmnt.vergence_bar = expmnt.vergence_bar .* expmnt.vergence_bar_scale;
 expmnt.show_vergence_bars = 1;
 expmnt.vergence_bar_file       = '../stimuli/texture_vertical.bmp';
 expmnt.dir_of_stereograms     = '../stimuli/stereograms';
@@ -131,29 +129,6 @@ unfamiliar_images = dir([dir_images filesep 'unfamiliar*.png']);
 unfamiliar_images = {unfamiliar_images.name};
 assert(length(familiar_images)>0 & length(unfamiliar_images)>0);
 
-%% Prepare conditions vectors
-
-% Frames for an entire trial:
-frames_conds = ones(1, expmnt.trial_duration*expmnt.monitor_hz);
-
-% Faces vector:
-frames_faces = nan(1, length(frames_conds)/baseline_framerate);
-temp = [];
-for i = 1:ceil(length(frames_faces)/length(unfamiliar_images))
-    temp = [temp, Shuffle(1:length(unfamiliar_images))];
-end
-% This is a vector with indices for each face to be presented:
-frames_faces = temp(1:length(frames_faces));
-clearvars temp;
-% Every Xth image, present the oddball stimulus:
-idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_faces);
-frames_faces(idx_oddball) = Shuffle((1:length(familiar_images))+length(unfamiliar_images));
-
-% Expand each image index to the number of frames to be presented:
-frames_faces = Expand(frames_faces, baseline_framerate, 1);
-
-
-
 
 %% Start PsychToolbox
 
@@ -210,6 +185,7 @@ pauseKeys(spaceKey) = 1;
 [screenXpixels, screenYpixels] = Screen('WindowSize', w);
 % Query the frame duration. It will be used to control the while loop.
 ifi = Screen('GetFlipInterval', w);
+hz = Screen('FrameRate', w); % Nominal frame rate
 % Get the centre coordinate of the window.
 [xCenter, yCenter] = RectCenter(wRect);
 % Set up alpha-blending for smooth (anti-aliased) lines????
@@ -217,12 +193,39 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 Screen('HideCursorHelper', w);
 
 
+
+%% Prepare conditions vectors
+
+expmnt.monitor_hz =     hz;
+mask_framerate =        round(expmnt.monitor_hz/expmnt.masks_hz);
+baseline_framerate =    round(expmnt.monitor_hz/expmnt.baseline_hz);
+oddball_framerate =     baseline_framerate*expmnt.odd_frequency;
+
+% Frames for an entire trial:
+frames_conds = ones(1, expmnt.trial_duration*expmnt.monitor_hz);
+
+% Faces vector:
+frames_faces = nan(1, length(frames_conds)/baseline_framerate);
+temp = [];
+for i = 1:ceil(length(frames_faces)/length(unfamiliar_images))
+    temp = [temp, Shuffle(1:length(unfamiliar_images))];
+end
+% This is a vector with indices for each face to be presented:
+frames_faces = temp(1:length(frames_faces));
+clearvars temp;
+% Every Xth image, present the oddball stimulus:
+idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_faces);
+frames_faces(idx_oddball) = Shuffle((1:length(familiar_images))+length(unfamiliar_images));
+
+% Expand each image index to the number of frames to be presented:
+frames_faces = Expand(frames_faces, baseline_framerate, 1);
+
+
 %% Duty cycle for sinusoidal modulation
-Hz = expmnt.monitor_hz;
-flickerRate = expmnt.baseline_hz; % 6 Hz
-cycle = round(linspace(0,360,Hz));                  %round(1/(frames)*1000)));
-cycle = repmat(cycle,[1,expmnt.trial_duration,1]);
-trans = cosd(cycle*flickerRate+180)*0.5+0.5;        %Create sinusoidal levels for pixel level
+flickerRate =   expmnt.baseline_hz; % 6 Hz
+cycle =         round(linspace(0, 360, hz));  %round(1/(frames)*1000)));
+cycle =         repmat(cycle,[1,expmnt.trial_duration,1]);
+trans =         cosd(cycle*flickerRate+180)*0.5+0.5; %Create sinusoidal levels for pixel level
 % trans(end) = [];                                    %Remove last element (as first is the same)
 %180 = shift phase; *0.5+0.5 = Transparency level 0-1
 %mins = findminima(trans);
@@ -297,6 +300,9 @@ KbQueueStart;
 KbQueueFlush();
 x_displacement_set = 0;
 while x_displacement_set == 0
+    % Draw stereograms:
+    Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_left, [], stereogram_box.left, []);
+    Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_right, [], stereogram_box.right, []);
     Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
     Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
     % DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.left);
@@ -327,10 +333,7 @@ if expmnt.savescreen; printscreenArray{1} = Screen('GetImage', w); end; %% Print
 % Load and edit stimuli for this participant:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Edit images: lumMatch, background colour, and convert into textures
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % All faces
 if 1
     [loadedFacesEdited, loadedFaces, mask_frgd, mask_bkgd] =...
@@ -379,8 +382,8 @@ end
 % Third Screen: stereogram to confirm vergence.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Draw stereograms:
-Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_left, [], stereogram_box.left, []);
-Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_right, [], stereogram_box.right, []);
+Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_left, [], stereogram_box.left, []);
+Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_right, [], stereogram_box.right, []);
 Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
 Screen('Flip', w);
 WaitSecs(.1);
@@ -546,21 +549,24 @@ ListenChar(0); % Restore keyboard output to Matlab
 
 %% Plot test of cycles:
 figure;
-subplot(4,1,1);
+subplot(5,1,1);
 plot(data.frames_faces);
 title('Unfamiliar faces: 1-72, Familiar faces: 73-144');
-subplot(4,1,2);
+subplot(5,1,2);
 plot(data.frames_faces<73); 
 title(sprintf('Unfamiliar faces: %.02f Hz', expmnt.baseline_hz));
 ylim([-0.1, 1.1]);
-subplot(4,1,3);
+subplot(5,1,3);
 plot(data.frames_faces>72); 
 title(sprintf('Familiar faces: %.02f Hz', expmnt.baseline_hz/expmnt.odd_frequency));
 ylim([-0.1, 1.1]);
-subplot(4,1,4);
+subplot(5,1,4);
 plot(diff(data.frames_masks));
 title(sprintf('CFS Masks: %.02f Hz', expmnt.masks_hz));
 ylim([-0.1, 1.1]);
+subplot(5,1,5);
+plot(diff(data.timestamps));
+title(sprintf('IFI, should be around: %.03f s', expmnt.onscreen_positions.ifi));
 
 
 end
@@ -591,8 +597,11 @@ function [vergence_bars_positions, fix_position_left, fix_position_right, textBo
         vergence_bar_right = expmnt.vergence_bar; % Original size: [0, 0, 16, 120]
         % This offplace is the same for both eyes, shouln't be, should be
         % smaller for left-eye when diff size: **********   PEND  **************
-        vergence_bar_offplace_left =  expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio/2 + (20/(expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio))*expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio;
-        vergence_bar_offplace_right = expmnt.mask_width/2 + (20/expmnt.mask_width)*expmnt.mask_width;
+        vergence_bar_offplace_left =  expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio/2 +...
+            ((expmnt.vergence_bar_width*1.25/2)/(expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio))*...
+            expmnt.mask_width*expmnt.cfs_1mirror_set_size_ratio;
+        vergence_bar_offplace_right = expmnt.mask_width/2 + ...
+            ((expmnt.vergence_bar_width*1.25/2)/expmnt.mask_width)*expmnt.mask_width;
         vergence_bar_left =  CenterRectOnPointd(vergence_bar_left, xCenter, yCenter);
         vergence_bar_right = CenterRectOnPointd(vergence_bar_right, xCenter, yCenter);
         vergence_bar_left =     vergence_bar_left - [x_displacement_left, 0, x_displacement_left, 0];
