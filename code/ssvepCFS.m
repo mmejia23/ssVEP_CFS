@@ -14,7 +14,7 @@ function [data, expmnt] = ssvepCFS
 % [X] Verify frames presented: save conditions vectors.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
 % [ ] Change place of Hz estimations (after PsychToolbox start).
-% [ ] Save mask, target, vergence bars positions: expmnt.
+% [X] Save mask, target, vergence bars positions: expmnt.
 
 clc;
 fprintf(    '_________________________________________________________________________\n');
