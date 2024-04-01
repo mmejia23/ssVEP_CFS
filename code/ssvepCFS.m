@@ -223,17 +223,17 @@ screen_size_mm =    [330, 220]; 	% width: ?mm, height: ?mm.
 stim_center_deg =   [0, 0]; 		% The center of the stimuli matches the center of the screen: degrees of eccentricity
 
 % Stimuli:
-stim_size_deg =     [3.1, 4.1]; 		% width: 3.608°, height: 4.7974°
+stim_size_deg =     [3.1, 4.1]; 		% width: , height: 
 [stim_size_px, stim_size_mm, stim_center_px] =...
 		deg2px2(stim_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
 % Masks/stereograms/text boxes:
-mask_size_deg =     [4.5, 4.5]; 		% width: 3.608°, height: 4.7974°
+mask_size_deg =     [4.5, 4.5]; 		% width: , height: 
 [mask_size_px, mask_size_mm, mask_center_px] =...
 		deg2px2(mask_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
 % Vergence bars:
-vergence_size_deg =     [0.6, 4.5]; 		% width: 3.608°, height: 4.7974°
+vergence_size_deg =     [0.6, 4.5]; 		% width: , height: 
 [vergence_size_px, vergence_size_mm, vergence_center_px] =...
 		deg2px2(vergence_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
@@ -609,6 +609,7 @@ for block = 1:length(expmnt.block_conds_order)
     Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     Screen('Flip', w);
+    KbWait;
     WaitSecs(1);
 
 
@@ -718,7 +719,7 @@ function [vergence_bars_positions, fix_position_left, fix_position_right, textBo
                                     vergence_bar_right + [vergence_bar_offplace_right, 0, vergence_bar_offplace_right, 0];...
                                     vergence_bar_right - [vergence_bar_offplace_right, 0, vergence_bar_offplace_right, 0] ]';
     else
-        vergence_bar_offplace = expmnt.mask_width/2 + 20;
+        vergence_bar_offplace = expmnt.mask_width/2 + (expmnt.vergence_bar_width*1.25/2);
 		vergence_bar = CenterRectOnPointd(expmnt.vergence_bar, xCenter, yCenter);
 		vergence_bar_right = vergence_bar + [expmnt.x_displacement, 0, expmnt.x_displacement, 0];
 		vergence_bar_left = vergence_bar - [expmnt.x_displacement, 0, expmnt.x_displacement, 0];
