@@ -24,6 +24,7 @@ fprintf(    '      Date: 2024-March-29   \n');
 fprintf('\n\n_________________________________________________________________________\n');
 
 addpath('SHINEtoolbox/');
+addpath('convert_screen_sizes');
 expmnt.savescreen =                 0;
 expmnt.PTB_SkipSyncTexts_config =   1;
 expmnt.debug_pt =                   0;
@@ -39,6 +40,7 @@ expmnt.set_custom_screen_size =     0;
 % 1./([70, 14, 10].*(1000./85)).*1000
 
 %% Set experiment variables
+%__________________________________________________________________________
 dir_images = '../stimuli/caras_experimento/';
 filename_structure = '../data/sub-%s_task-ssvepCFS';
 expmnt.dir_of_texts_png_files = '../stimuli/textos/';
@@ -66,11 +68,13 @@ else
     expmnt.supp2__mask_alpha =  0.32;
 end
 
-% Screen sizes
+% Sizes
+
+% Stimuli:
 expmnt.stimuli_width =          100;
 expmnt.stimuli_height =         133;
 
-% Masks box
+% Masks box (same as stereograms and text boxes):
 expmnt.mask_width =             240;
 expmnt.mask_height =            240;
 expmnt.num_masks =              500; %approx
@@ -78,7 +82,6 @@ expmnt.num_masks =              500; %approx
 % Vergence bars
 expmnt.vergence_bar_width =     32;
 expmnt.vergence_bar_height =    240;
-expmnt.vergence_bar = [0, 0, expmnt.vergence_bar_width, expmnt.vergence_bar_height];
 
 expmnt.im_white    = 255;
 expmnt.img_contrast_sd         = 12; % approx 20% Michelson contrast. Need to check. %%%  EDIT BEFORE EXP. %%% 
@@ -110,6 +113,7 @@ end
 
 
 %% Filename
+%__________________________________________________________________________
 filename = sprintf(filename_structure, subject);
 if exist([filename, '_beh.mat'], 'file')
     % If there are previous files, rename them to separate them:
@@ -121,10 +125,8 @@ end
 
 
 %% Estimated vars within experiment:
+%__________________________________________________________________________
 
-target_box = [0 0 expmnt.stimuli_width expmnt.stimuli_height]; % Position of target.
-% Masks box:
-mask_box = [0, 0, expmnt.mask_width, expmnt.mask_height];
 masks_time_interval = 1/expmnt.masks_hz;
 % Make the contingency window, to check if eyegaze is here:
 gazeRect = [0 0 200 200];
@@ -133,14 +135,13 @@ fix_color = expmnt.fix_color;
 fix_size = 10;
 % Line width for fixation cross:
 fix_lineWidth = 2;
-
 font_size = 15;
-
 which_stereogram    = expmnt.stereogram_for_exp;
-
 pos_first_text_line = 0.40;
 
+    
 %% Prepare stimuli
+%__________________________________________________________________________
 
 % Get list of filenames of stimuli:
 familiar_images = dir([dir_images filesep 'familiar*.png']);
@@ -151,6 +152,7 @@ assert(length(familiar_images)>0 & length(unfamiliar_images)>0);
 
 
 %% Start PsychToolbox
+%__________________________________________________________________________
 
 % Call some default settings:
 PsychDefaultSetup(2);
@@ -213,6 +215,41 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 Screen('HideCursorHelper', w);
 
 
+%% Estimate stimuli, masks, vergence bars, fixation, and texts sizes in px
+%__________________________________________________________________________
+screen_size_px =    [screenXpixels, screenYpixels]; 	% width: 800px, height: 600px
+screen_distance_mm = [635]; 	% eye to center of screen distance: 635 mm.
+screen_size_mm =    [330, 220]; 	% width: ?mm, height: ?mm.
+stim_center_deg =   [0, 0]; 		% The center of the stimuli matches the center of the screen: degrees of eccentricity
+
+% Stimuli:
+stim_size_deg =     [3.1, 4.1]; 		% width: 3.608°, height: 4.7974°
+[stim_size_px, stim_size_mm, stim_center_px] =...
+		deg2px2(stim_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
+
+% Masks/stereograms/text boxes:
+mask_size_deg =     [4.5, 4.5]; 		% width: 3.608°, height: 4.7974°
+[mask_size_px, mask_size_mm, mask_center_px] =...
+		deg2px2(mask_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
+
+% Vergence bars:
+vergence_size_deg =     [0.6, 4.5]; 		% width: 3.608°, height: 4.7974°
+[vergence_size_px, vergence_size_mm, vergence_center_px] =...
+		deg2px2(vergence_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
+
+% Set sizes:
+expmnt.vergence_bar_width =     round(vergence_size_px(1));
+expmnt.vergence_bar_height =    round(vergence_size_px(2));
+expmnt.mask_width =             round(mask_size_px(1));
+expmnt.mask_height =             round(mask_size_px(2));
+expmnt.stimuli_width =          round(stim_size_px(1));
+expmnt.stimuli_height =         round(stim_size_px(2));
+
+% Target box:
+target_box = [0 0 expmnt.stimuli_width expmnt.stimuli_height]; % Position of target.
+% Masks box:
+mask_box = [0, 0, expmnt.mask_width, expmnt.mask_height];
+expmnt.vergence_bar = [0, 0, expmnt.vergence_bar_width, expmnt.vergence_bar_height];
 
 %% Prepare conditions vectors
 %__________________________________________________________________________
