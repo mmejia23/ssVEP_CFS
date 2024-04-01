@@ -2,10 +2,7 @@ function [data, expmnt] = ssvepCFS(subject, supps_alpha)
 % Info
 % 
 % Pending:
-% [X] Change place of Hz estimations (after PsychToolbox start).
-% [X] Save data from each block at the end of each block. BIDS format.
-% [X] Add selection of visible and invisible blocks.
-% [ ] Adjust mask and faces sizes: based on visual angle degrees.
+% [X] Adjust mask and faces sizes: based on visual angle degrees.
 % [ ] Add selection of short trials: 10 famfaces cycles?
 % [ ] Add task: categorize Cneuro vs famous?
 % [ ] Set parts mask alpha from UML estimation.
@@ -817,4 +814,6 @@ end
 % [X] Verify frames presented: save conditions vectors.
 % [X] Add stereogram at first screen for position calibration.
 % [X] Save mask, target, vergence bars positions: expmnt.
-
+% [X] Change place of Hz estimations (after PsychToolbox start).
+% [X] Save data from each block at the end of each block. BIDS format.
+% [X] Add selection of visible and invisible blocks.
