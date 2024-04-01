@@ -2,24 +2,15 @@ function [data, expmnt] = ssvepCFS(subject, suppression, supp_alpha)
 % Info
 % 
 % Pending:
-% [X] Custom adjustment of x_displacement.
-% [X] Present masks depending on which frame we are.
-% [X] Present stimuli depending on which frame we are.
-% [X] Add fade-in & fade-out for each stimulus.
-% [X] Test keyboard check (do we have problems with timing?).
-%     Apparently there is no lag!!
-% [X] Save to Github.
-% [X] Add overall fade-in & fade-out for entire block.
-% [X] Add values for mask alpha levels.
-% [X] Verify frames presented: save conditions vectors.
-% [X] Add stereogram at first screen for position calibration.
-% [X] Save mask, target, vergence bars positions: expmnt.
 % [X] Change place of Hz estimations (after PsychToolbox start).
 % [X] Save data from each block at the end of each block. BIDS format.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
 % [ ] Add selection of visible and invisible blocks: set parts mask alpha.
 % [ ] Add selection of short trials: 10 famfaces cycles?
 % [ ] Add task: categorize Cneuro vs famous?
+% [ ] 
+
+% For the setup:
 % [ ] 
 
 clc;
@@ -719,4 +710,18 @@ function [imagesEdited, imagesReady, mask_frgd, mask_bkgd] = load_edit_convert_i
         imagesReady(i).theTexture =      Screen('MakeTexture', window, imagesEdited{i});
     end
 end
+
+%% Done:
+% [X] Custom adjustment of x_displacement.
+% [X] Present masks depending on which frame we are.
+% [X] Present stimuli depending on which frame we are.
+% [X] Add fade-in & fade-out for each stimulus.
+% [X] Test keyboard check (do we have problems with timing?).
+%     Apparently there is no lag!!
+% [X] Save to Github.
+% [X] Add overall fade-in & fade-out for entire block.
+% [X] Add values for mask alpha levels.
+% [X] Verify frames presented: save conditions vectors.
+% [X] Add stereogram at first screen for position calibration.
+% [X] Save mask, target, vergence bars positions: expmnt.
 

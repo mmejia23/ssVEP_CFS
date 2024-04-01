@@ -15,12 +15,15 @@ function [data, expmnt] = ssvepCFS(subject, suppression, supp_alpha)
 % [X] Add stereogram at first screen for position calibration.
 % [X] Save mask, target, vergence bars positions: expmnt.
 % [X] Change place of Hz estimations (after PsychToolbox start).
+% [X] Save data from each block at the end of each block. BIDS format.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
-% [ ] Save data from each block at the end of each block. BIDS format.
 % [ ] Add selection of visible and invisible blocks: set parts mask alpha.
 % [ ] Add selection of short trials: 10 famfaces cycles?
 % [ ] Add task: categorize Cneuro vs famous?
 % [ ] 
+
+% For the setup:
+% 
 
 clc;
 fprintf(    '_________________________________________________________________________\n');
@@ -42,6 +45,7 @@ addpath('C:\Users\cthul\Dropbox\PROYECTOS\0-PhD\MLtoolboxes\SHINEtoolbox');
 
 %% Set experiment variables
 dir_images = '../stimuli/caras_experimento/';
+filename_structure = '../data/sub-%s_task-ssvepCFS';
 
 % Dynamics
 expmnt.masks_hz =       8.5; % approx, is defined according to monitor framerate
@@ -552,15 +556,13 @@ expmnt.onscreen_positions.ifi = ifi;
 expmnt.onscreen_positions.screenXpixels = screenXpixels;
 expmnt.onscreen_positions.screenYpixels = screenYpixels;
 
-filename_structure = '../data/sub-%s_task-ssvepCFS';
 filename = sprintf(filename_structure, subject);
 if exist([filename, '_beh.mat'], 'file')
     % If there are previous files, rename them to separate them:
     matFilesFound           = dir([filename '*']);
     matFilesFound           = {matFilesFound.name};
     newname_prev_matFile    = [filename, '_desc-try', num2str(length(matFilesFound)), '_beh.mat'];
-    movefile(filename, newname_prev_matFile);
-    filename = sprintf(filename_structure, subject, '_desc-');
+    movefile([filename, '_beh.mat'], newname_prev_matFile);
 end
 save([filename, '_beh.mat'], 'data', 'expmnt');
 
