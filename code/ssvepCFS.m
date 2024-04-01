@@ -3,7 +3,7 @@ function [data, expmnt] = ssvepCFS(subject, supps_alpha)
 % 
 % Pending:
 % [X] Adjust mask and faces sizes: based on visual angle degrees.
-% [ ] Add selection of short trials: 10 famfaces cycles?
+% [X] Add selection of short trials: 10 famfaces cycles? Change in duration
 % [ ] Add task: categorize Cneuro vs famous?
 % [ ] Set parts mask alpha from UML estimation.
 
@@ -43,7 +43,7 @@ filename_structure = '../data/sub-%s_task-ssvepCFS';
 expmnt.dir_of_texts_png_files = '../stimuli/textos/';
 
 % Blocks and trials
-expmnt.trial_duration =     60;
+expmnt.trial_duration =     10;
 expmnt.block_conds_order =  [0, 1, 0, 1];
 
 % Dynamics
@@ -408,9 +408,9 @@ end
 %__________________________________________________________________________
 % make_mondrian_masks(sz_x, sz_y, n_masks, shape, selection)
 % shape=2, circles. % selection=2, grayscale.
-expmnt.num_masks = ceil(length(frames_conds)/mask_framerate); % Minimum
-temp = Expand(1:expmnt.num_masks, mask_framerate, 1);
-frames_masks = temp(1:length(frames_conds));
+expmnt.num_masks =  ceil(length(frames_conds)/mask_framerate); % Minimum
+temp =              Expand(1:expmnt.num_masks, mask_framerate, 1);
+frames_masks =      temp(1:length(frames_conds));
 clearvars temp;
 masks_raw = make_mondrian_masks(expmnt.mask_width, expmnt.mask_height, expmnt.num_masks, 2, 2);
 % Same luminance of masks and targets. Control contrast:
@@ -510,7 +510,9 @@ for block = 1:length(expmnt.block_conds_order)
     clearvars temp;
     % Every Xth image, present the oddball stimulus:
     idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_faces);
-    frames_faces(idx_oddball) = Shuffle((1:length(familiar_images))+length(unfamiliar_images));
+    temp = Shuffle((1:length(familiar_images))+length(unfamiliar_images));
+    frames_faces(idx_oddball) = temp(1:length(frames_faces(idx_oddball)));
+    clearvars temp;
 
     % Expand each image index to the number of frames to be presented:
     frames_faces = Expand(frames_faces, baseline_framerate, 1);
@@ -607,7 +609,7 @@ for block = 1:length(expmnt.block_conds_order)
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     Screen('Flip', w);
     KbWait;
-    WaitSecs(1);
+    WaitSecs(.5);
 
 
     %% Save data
