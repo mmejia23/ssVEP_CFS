@@ -2,28 +2,18 @@ function [data, expmnt] = ssvepCFS(subject, suppression, supp_alpha)
 % Info
 % 
 % Pending:
-% [X] Custom adjustment of x_displacement.
-% [X] Present masks depending on which frame we are.
-% [X] Present stimuli depending on which frame we are.
-% [X] Add fade-in & fade-out for each stimulus.
-% [X] Test keyboard check (do we have problems with timing?).
-%     Apparently there is no lag!!
-% [X] Save to Github.
-% [X] Add overall fade-in & fade-out for entire block.
-% [X] Add values for mask alpha levels.
-% [X] Verify frames presented: save conditions vectors.
-% [X] Add stereogram at first screen for position calibration.
-% [X] Save mask, target, vergence bars positions: expmnt.
 % [X] Change place of Hz estimations (after PsychToolbox start).
 % [X] Save data from each block at the end of each block. BIDS format.
 % [ ] Adjust mask and faces sizes: based on visual angle degrees.
 % [ ] Add selection of visible and invisible blocks: set parts mask alpha.
 % [ ] Add selection of short trials: 10 famfaces cycles?
 % [ ] Add task: categorize Cneuro vs famous?
-% [ ] 
 
 % For the setup:
-% 
+% [ ] Code UML psychophysics estimation.
+% [ ] What can work as *divider*?
+% [ ] Do we need more unfamiliar faces?
+% [ ] Do we need more/differente familiar faces?
 
 clc;
 fprintf(    '_________________________________________________________________________\n');
@@ -32,8 +22,12 @@ fprintf(    '      Code: Manuel Mejia   \n');
 fprintf(    '      Date: 2024-March-29   \n');
 fprintf('\n\n_________________________________________________________________________\n');
 
-expmnt.savescreen = 0;
-addpath('C:\Users\cthul\Dropbox\PROYECTOS\0-PhD\MLtoolboxes\SHINEtoolbox');
+addpath('SHINEtoolbox/');
+expmnt.savescreen =                 0;
+expmnt.PTB_SkipSyncTexts_config =   1;
+expmnt.debug_pt =                   0;
+expmnt.BeampositionQueryWorkaround = 1;
+expmnt.set_custom_screen_size =     0;
 
 %% 60 or 85 Hz
 % Frequencies that can be tagged depending on monitor screen rate:
@@ -46,20 +40,24 @@ addpath('C:\Users\cthul\Dropbox\PROYECTOS\0-PhD\MLtoolboxes\SHINEtoolbox');
 %% Set experiment variables
 dir_images = '../stimuli/caras_experimento/';
 filename_structure = '../data/sub-%s_task-ssvepCFS';
+expmnt.dir_of_texts_png_files = '../stimuli/textos/';
+
+% Blocks and trials
+expmnt.trial_duration =     60;
+expmnt.block_conds_order =  [0, 1, 0, 1];
 
 % Dynamics
 expmnt.masks_hz =       8.5; % approx, is defined according to monitor framerate
 expmnt.baseline_hz =    6;
-expmnt.trial_duration = 60;
 expmnt.fade_in_time =   2;
 expmnt.fade_out_time =  2;
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
 
-% Suppressions
-% expmnt.default_alpha_masks_supp1   = 0.05;
-% expmnt.default_alpha_masks_supp2   = 0.15;
-% expmnt.default_alpha_masks_supp3   = 0.50;
-if nargin > 1
+% Suppressions: based on averages of pupillometry study
+% expmnt.default_alpha_masks_supp1   = 0.04;
+% expmnt.default_alpha_masks_supp2   = 0.32;
+% expmnt.default_alpha_masks_supp3   = 0.60;
+if nargin > 2
     expmnt.this_trial__mask_alpha   = supp_alpha;
 else
     switch suppression
@@ -112,11 +110,16 @@ else
     expmnt.cfs_1mirror_set_size_ratio                  = 1.00;
 end
 
-expmnt.PTB_SkipSyncTexts_config = 1;
-expmnt.debug_pt = 0;
-expmnt.BeampositionQueryWorkaround = 1;
-expmnt.set_custom_screen_size = 0;
 
+%% Filename
+filename = sprintf(filename_structure, subject);
+if exist([filename, '_beh.mat'], 'file')
+    % If there are previous files, rename them to separate them:
+    matFilesFound           = dir([filename '*']);
+    matFilesFound           = {matFilesFound.name};
+    newname_prev_matFile    = [filename, '_desc-try', num2str(length(matFilesFound)), '_beh.mat'];
+    movefile([filename, '_beh.mat'], newname_prev_matFile);
+end
 
 
 %% Estimated vars within experiment:
@@ -182,7 +185,7 @@ fixCoordsRight = fixCoords;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set available keys to press:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 % Get key codes:
 escapeKey =     KbName('ESCAPE');
 spaceKey =      KbName('space');
@@ -197,7 +200,7 @@ pauseKeys(spaceKey) = 1;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Start PsychToolbox window:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 % Open an on screen window:
 [w, wRect] = PsychImaging('OpenWindow', screenNumber, expmnt.background);
 % Get size of on screen window:
@@ -214,33 +217,19 @@ Screen('HideCursorHelper', w);
 
 
 %% Prepare conditions vectors
+%__________________________________________________________________________
 
 expmnt.monitor_hz =     hz;
 mask_framerate =        round(expmnt.monitor_hz/expmnt.masks_hz);
 baseline_framerate =    round(expmnt.monitor_hz/expmnt.baseline_hz);
 oddball_framerate =     baseline_framerate*expmnt.odd_frequency;
 
-% Frames for an entire trial:
+% Just a vector with ones for each frame for an entire block:
 frames_conds = ones(1, expmnt.trial_duration*expmnt.monitor_hz);
-
-% Faces vector:
-frames_faces = nan(1, length(frames_conds)/baseline_framerate);
-temp = [];
-for i = 1:ceil(length(frames_faces)/length(unfamiliar_images))
-    temp = [temp, Shuffle(1:length(unfamiliar_images))];
-end
-% This is a vector with indices for each face to be presented:
-frames_faces = temp(1:length(frames_faces));
-clearvars temp;
-% Every Xth image, present the oddball stimulus:
-idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_faces);
-frames_faces(idx_oddball) = Shuffle((1:length(familiar_images))+length(unfamiliar_images));
-
-% Expand each image index to the number of frames to be presented:
-frames_faces = Expand(frames_faces, baseline_framerate, 1);
 
 
 %% Duty cycle for sinusoidal modulation
+%__________________________________________________________________________
 flickerRate =   expmnt.baseline_hz; % 6 Hz
 cycle =         round(linspace(0, 360, hz));  %round(1/(frames)*1000)));
 cycle =         repmat(cycle,[1,expmnt.trial_duration,1]);
@@ -253,9 +242,9 @@ flipped = 1 - trans;
 mins = locs;
 
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ------------------------------------------------------------------------
 % Load vergence bar:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 vergence(1).img = imread(expmnt.vergence_bar_file);
 vergence(1).img = mat2gray(vergence(1).img, [0, 3]);
 if expmnt.show_vergence_bars == 0
@@ -267,7 +256,7 @@ vergence(1).tex = Screen('MakeTexture', w, vergence(1).img);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load stereograms:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 stereograms_list = dir(fullfile(expmnt.dir_of_stereograms, '*l.jpg'));
 for i = 1:length(stereograms_list)
     stereograms(i).img_left =  imread(fullfile(expmnt.dir_of_stereograms, sprintf('stereogram%02d_l.jpg', i)));
@@ -279,9 +268,24 @@ end
 clearvars stereograms_list;
 
 
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Load text images:
+%__________________________________________________________________________
+% Get list of filenames of texts:
+texts_directory = dir(fullfile(expmnt.dir_of_texts_png_files, 'texto*'));
+% Get list of images:
+texts_images = {texts_directory.name};
+for i = 1:length(texts_images)
+    [temp, ~, alpha] = imread(fullfile(expmnt.dir_of_texts_png_files, texts_images{i}));
+    textsImages(i).images = cat(3, temp, temp, temp, alpha);
+    textsImages(i).textures = Screen('MakeTexture', w, textsImages(i).images);
+end
+clearvars texts_directory;
+
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stimuli fixed positions:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 % Function that generates positions for images that remain static throughout
 % entire experiment: 
 % 1) vergence bars, 2) Fixation cross, 3) textboxes, 4) stereograms
@@ -311,7 +315,7 @@ right_pos_offset =  [ expmnt.position_task_offset, 0,  expmnt.position_task_offs
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % First screen: loading images. Text: 'Preparando las imagenes...'
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 
 Screen('TextSize', w, font_size);
 KbQueueCreate([], responseKeys);
@@ -324,8 +328,6 @@ while x_displacement_set == 0
     Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_right, [], stereogram_box.right, []);
     Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
     Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-    % DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.left);
-    DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     Screen('Flip', w);
     [pressed, firstPress] = KbQueueCheck;
@@ -344,13 +346,22 @@ while x_displacement_set == 0
     end
 end
 if expmnt.savescreen; printscreenArray{1} = Screen('GetImage', w); end; %% Printscreen and save file.
+WaitSecs(.1);
 
-
+% Preparando imagenes...
+Screen('DrawTextures', w, textsImages(1).textures, [], [textBox.left; textBox.right]', 0, [], []);
+%     DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.left);
+%     DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
+Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+Screen('Flip', w);
+WaitSecs(.1);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load and edit stimuli for this participant:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 
 % Edit images: lumMatch, background colour, and convert into textures
 % All faces
@@ -362,7 +373,7 @@ end
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create and prepare masks:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 % make_mondrian_masks(sz_x, sz_y, n_masks, shape, selection)
 % shape=2, circles. % selection=2, grayscale.
 expmnt.num_masks = ceil(length(frames_conds)/mask_framerate); % Minimum
@@ -381,8 +392,9 @@ end
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Second screen: images loaded. Text: 'Imagenes preparadas.'
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-DrawFormattedText(w, 'Imagenes listas.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
+%__________________________________________________________________________
+Screen('DrawTextures', w, textsImages(2).textures, [], [textBox.left; textBox.right]', 0, [], []);
+% DrawFormattedText(w, 'Imagenes listas.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
 Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
 Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
 Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
@@ -399,7 +411,7 @@ end
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Third Screen: stereogram to confirm vergence.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%__________________________________________________________________________
 % Draw stereograms:
 Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_left, [], stereogram_box.left, []);
 Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_right, [], stereogram_box.right, []);
@@ -427,146 +439,171 @@ end
 %|__________________________________________________________________________
 
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% screen: press any key to begin. 'Presiona cualquier tecla \n\npara iniciar.'
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-DrawFormattedText(w, 'Presione cualquier tecla para iniciar.', 'center',...
-    screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
-Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
-Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-Screen('Flip', w);
-if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
-if expmnt.debug_pt == 1
-    WaitSecs(2);
-else
-    KbWait;
-    WaitSecs(.5);
-end
+for block = 1:length(expmnt.block_conds_order)
 
-
-%% Block loop
-block_end = 0;
-timestamps = nan(1, length(frames_conds));
-trial_responses = [];
-trial_response_times = [];
-trial_response = [];
-trial_response_time = [];
-KbQueueFlush();
-
-% Mask position and potency:
-this_trial__xy_target_masks_displacement = ...
-            [expmnt.x_displacement, 0, expmnt.x_displacement, 0];
-this_trial__masks_position_xy =...
-    mask_box_right + expmnt.cfs_1mirror_set_right_prop_of_displace * this_trial__xy_target_masks_displacement;
-this_trial__mask_alpha = expmnt.this_trial__mask_alpha;
-
-% Target position:
-this_trial__target_position_xy = ...
-    target_box_left - expmnt.cfs_1mirror_set_right_prop_of_displace * this_trial__xy_target_masks_displacement;
-
-% Fade in:
-fade_in_frames = expmnt.fade_in_time * expmnt.monitor_hz;
-fade_in_cycle = round(linspace(0, this_trial__mask_alpha, fade_in_frames), 2);
-temp = Shuffle(1:expmnt.num_masks);
-temp = Expand(temp, mask_framerate, 1);
-fade_in_masks = temp(1:length(fade_in_cycle));
-clearvars temp;
-for frame = 1:length(fade_in_cycle)
+    %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % screen: press any key to begin. 'Presiona cualquier tecla \n\npara iniciar.'
+    %__________________________________________________________________________
+    Screen('DrawTextures', w, textsImages(3).textures, [], [textBox.left; textBox.right]', 0, [], []);
+    % DrawFormattedText(w, 'Presione cualquier tecla para iniciar.', 'center',...
+    %     screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
+    Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+    Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-    % Draw masks:
-    Screen('DrawTextures', w, masksTex(fade_in_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_in_cycle(frame));
     Screen('Flip', w);
-end
-
-for frame = 1:length(frames_conds)
-    
-    Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-    % Draw target:
-    Screen('DrawTextures', w, loadedFaces(frames_faces(frame)).theTexture, [], this_trial__target_position_xy, 0, [], 1-flipped(frame));
-    % Draw masks:
-    Screen('DrawTextures', w, masksTex(frames_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], this_trial__mask_alpha);
-    
-    % Gather response:
-    [pressed, firstPress] = KbQueueCheck;
-    if pressed
-        if firstPress(key1)
-            trial_response = 0;
-            trial_response_time = firstPress(key1);
-        end
-        if firstPress(key2)
-            trial_response = 1;
-            trial_response_time = firstPress(key2);
-        end
-        if firstPress(spaceKey)
-            block_end = 1;
-            break;
-        end
-        trial_responses = [trial_responses, trial_response];
-        trial_response_times = [trial_response_times, trial_response_time];
+    if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
+    if expmnt.debug_pt == 1
+        WaitSecs(2);
+    else
+        KbWait;
+        WaitSecs(.5);
     end
     
-    vbl = Screen('Flip', w);
-    timestamps(frame) = vbl;
-end
+    %% Start block loop vars:
+    %__________________________________________________________________________
+    timestamps =            nan(1, length(frames_conds));
+    trial_responses =       [];
+    trial_response_times =  [];
+    trial_response =        [];
+    trial_response_time =   [];
+    
+    % Faces vector:
+    frames_faces = nan(1, length(frames_conds)/baseline_framerate);
+    temp = [];
+    for i = 1:ceil(length(frames_faces)/length(unfamiliar_images))
+        temp = [temp, Shuffle(1:length(unfamiliar_images))];
+    end
+    % This is a vector with indices for each face to be presented:
+    frames_faces = temp(1:length(frames_faces));
+    clearvars temp;
+    % Every Xth image, present the oddball stimulus:
+    idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_faces);
+    frames_faces(idx_oddball) = Shuffle((1:length(familiar_images))+length(unfamiliar_images));
 
-% Fade out:
-fade_out_frames = expmnt.fade_out_time * expmnt.monitor_hz;
-fade_out_cycle = round(linspace(this_trial__mask_alpha, 0, fade_out_frames), 2);
-temp = Shuffle(1:expmnt.num_masks);
-temp = Expand(temp, mask_framerate, 1);
-fade_out_masks = temp(1:length(fade_out_cycle));
-for frame = 1:length(fade_out_cycle)
+    % Expand each image index to the number of frames to be presented:
+    frames_faces = Expand(frames_faces, baseline_framerate, 1);
+    
+    % Define mask alpha:
+    switch 
+    
+    % Mask position and potency:
+    this_trial__xy_target_masks_displacement = ...
+                [expmnt.x_displacement, 0, expmnt.x_displacement, 0];
+    this_trial__masks_position_xy =...
+        mask_box_right + expmnt.cfs_1mirror_set_right_prop_of_displace * this_trial__xy_target_masks_displacement;
+    this_trial__mask_alpha = expmnt.this_trial__mask_alpha;
+
+    % Target position:
+    this_trial__target_position_xy = ...
+        target_box_left - expmnt.cfs_1mirror_set_right_prop_of_displace * this_trial__xy_target_masks_displacement;
+
+    %% Block loop
+    %__________________________________________________________________________
+    KbQueueFlush();
+
+    % Fade in:
+    fade_in_frames = expmnt.fade_in_time * expmnt.monitor_hz;
+    fade_in_cycle = round(linspace(0, this_trial__mask_alpha, fade_in_frames), 2);
+    temp = Shuffle(1:expmnt.num_masks);
+    temp = Expand(temp, mask_framerate, 1);
+    fade_in_masks = temp(1:length(fade_in_cycle));
+    clearvars temp;
+    for frame = 1:length(fade_in_cycle)
+        Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+        % Draw masks:
+        Screen('DrawTextures', w, masksTex(fade_in_masks(frame)).all, [],...
+            this_trial__masks_position_xy, 180, [], fade_in_cycle(frame));
+        Screen('Flip', w);
+    end
+
+    for frame = 1:length(frames_conds)
+
+        Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+        % Draw target:
+        Screen('DrawTextures', w, loadedFaces(frames_faces(frame)).theTexture, [],...
+            this_trial__target_position_xy, 0, [], 1-flipped(frame));
+        % Draw masks:
+        Screen('DrawTextures', w, masksTex(frames_masks(frame)).all, [],...
+            this_trial__masks_position_xy, 180, [], this_trial__mask_alpha);
+
+        % Gather response:
+        [pressed, firstPress] = KbQueueCheck;
+        if pressed
+            if firstPress(key1)
+                trial_response = 0;
+                trial_response_time = firstPress(key1);
+            end
+            if firstPress(key2)
+                trial_response = 1;
+                trial_response_time = firstPress(key2);
+            end
+            if firstPress(spaceKey)
+                break;
+            end
+            trial_responses = [trial_responses, trial_response];
+            trial_response_times = [trial_response_times, trial_response_time];
+        end
+
+        vbl = Screen('Flip', w);
+        timestamps(frame) = vbl;
+    end
+
+    % Fade out:
+    fade_out_frames = expmnt.fade_out_time * expmnt.monitor_hz;
+    fade_out_cycle = round(linspace(this_trial__mask_alpha, 0, fade_out_frames), 2);
+    temp = Shuffle(1:expmnt.num_masks);
+    temp = Expand(temp, mask_framerate, 1);
+    fade_out_masks = temp(1:length(fade_out_cycle));
+    for frame = 1:length(fade_out_cycle)
+        Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+        % Draw masks:
+        Screen('DrawTextures', w, masksTex(fade_out_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_out_cycle(frame));
+        Screen('Flip', w);
+    end
+
+
+    %% End of block:
+    %__________________________________________________________________________
+    Screen('DrawTextures', w, textsImages(6).textures, [], [textBox.left; textBox.right]', 0, [], []);
+    % DrawFormattedText(w, 'Fin de bloque.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
+    Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+    Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-    % Draw masks:
-    Screen('DrawTextures', w, masksTex(fade_out_masks(frame)).all, [], this_trial__masks_position_xy, 180, [], fade_out_cycle(frame));
     Screen('Flip', w);
+    WaitSecs(1);
+
+
+    %% Save data
+    %__________________________________________________________________________
+    data(block).subject =               subject;
+    data(block).timestamps =            timestamps;
+    data(block).trial_responses =       trial_responses;
+    data(block).trial_response_times =  trial_response_times;
+    data(block).frames_conds =          frames_conds;
+    data(block).frames_faces =          frames_faces;
+    data(block).frames_masks =          frames_masks;
+    
+    expmnt.frames_alpha =           1-flipped;
+    expmnt.baseline_framerate =     baseline_framerate;
+    expmnt.mask_framerate =         mask_framerate;
+    expmnt.oddball_framerate =      oddball_framerate;
+    expmnt.onscreen_positions.vergence_bars_positions =     vergence_bars_positions;
+    expmnt.onscreen_positions.fix_position_left =           fix_position_left;
+    expmnt.onscreen_positions.fix_position_right =          fix_position_right;
+    expmnt.onscreen_positions.textBox =                     textBox;
+    expmnt.onscreen_positions.stereogram_box =              stereogram_box;
+    expmnt.onscreen_positions.masks_position_xy =           this_trial__masks_position_xy;
+    expmnt.onscreen_positions.target_position_xy =          this_trial__target_position_xy;
+    expmnt.onscreen_positions.ifi =                         ifi;
+    expmnt.onscreen_positions.screenXpixels =               screenXpixels;
+    expmnt.onscreen_positions.screenYpixels =               screenYpixels;
+
+    save([filename, '_beh.mat'], 'data', 'expmnt');
+    
 end
-
-
-% End of block:
-DrawFormattedText(w, 'Fin de bloque.', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
-Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
-Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-Screen('Flip', w);
-
-
-%% Save data
-data.subject = subject;
-data.timestamps = timestamps;
-data.trial_responses = trial_responses;
-data.trial_response_times = trial_response_times;
-data.frames_conds = frames_conds;
-data.frames_faces = frames_faces;
-data.frames_masks = frames_masks;
-data.frames_alpha = 1-flipped;
-data.baseline_framerate = baseline_framerate;
-data.mask_framerate = mask_framerate;
-data.oddball_framerate = oddball_framerate;
-
-expmnt.onscreen_positions.vergence_bars_positions = vergence_bars_positions;
-expmnt.onscreen_positions.fix_position_left = fix_position_left;
-expmnt.onscreen_positions.fix_position_right = fix_position_right;
-expmnt.onscreen_positions.textBox = textBox;
-expmnt.onscreen_positions.stereogram_box = stereogram_box;
-expmnt.onscreen_positions.this_trial__masks_position_xy = this_trial__masks_position_xy;
-expmnt.onscreen_positions.this_trial__target_position_xy = this_trial__target_position_xy;
-expmnt.onscreen_positions.ifi = ifi;
-expmnt.onscreen_positions.screenXpixels = screenXpixels;
-expmnt.onscreen_positions.screenYpixels = screenYpixels;
-
-filename = sprintf(filename_structure, subject);
-if exist([filename, '_beh.mat'], 'file')
-    % If there are previous files, rename them to separate them:
-    matFilesFound           = dir([filename '*']);
-    matFilesFound           = {matFilesFound.name};
-    newname_prev_matFile    = [filename, '_desc-try', num2str(length(matFilesFound)), '_beh.mat'];
-    movefile([filename, '_beh.mat'], newname_prev_matFile);
-end
-save([filename, '_beh.mat'], 'data', 'expmnt');
 
 %% Close PsychToolbox
+%__________________________________________________________________________
 
 % Release keyboard with PsychToolbox, wait and clear workspace:
 KbQueueRelease();
@@ -577,31 +614,33 @@ clear Screen;
 ListenChar(0); % Restore keyboard output to Matlab
 
 %% Plot test of cycles:
+%__________________________________________________________________________
 figure;
-subplot(5,1,1);
-plot(data.frames_faces);
-title('Unfamiliar faces: 1-72, Familiar faces: 73-144');
-subplot(5,1,2);
+subplot(4,1,1);
 plot(data.frames_faces<73); 
 title(sprintf('Unfamiliar faces: %.02f Hz', expmnt.baseline_hz));
 ylim([-0.1, 1.1]);
-subplot(5,1,3);
+subplot(4,1,2);
 plot(data.frames_faces>72); 
 title(sprintf('Familiar faces: %.02f Hz', expmnt.baseline_hz/expmnt.odd_frequency));
 ylim([-0.1, 1.1]);
-subplot(5,1,4);
+subplot(4,1,3);
 plot(diff(data.frames_masks));
 title(sprintf('CFS Masks: %.02f Hz', expmnt.masks_hz));
 ylim([-0.1, 1.1]);
-subplot(5,1,5);
+subplot(4,1,4);
 plot(diff(data.timestamps));
 title(sprintf('IFI, should be around: %.03f s', expmnt.onscreen_positions.ifi));
 
+% figure;
+% plot(data.frames_faces);
+% title('Unfamiliar faces: 1-72, Familiar faces: 73-144');
 
 end
 
 
 %% Set screen positions of fixed elements:
+%__________________________________________________________________________
 function [vergence_bars_positions, fix_position_left, fix_position_right, textBox, stereogram_box] =...
     create_static_images_boxes(expmnt, xCenter, yCenter, screenYpixels, mask_box)
     % create_static_images_boxes(expmnt, xCenter, yCenter, screenYpixels, mask_box)
@@ -673,6 +712,7 @@ end
 
 
 %% Load, edit and convert images into PsychToolbox textures:
+%__________________________________________________________________________
 function [imagesEdited, imagesReady, mask_frgd, mask_bkgd] = load_edit_convert_imgs(list_filenames_images, dir_images, expmnt, window)
     % load_edit_convert_imgs(list_filenames_images, dir_images, expmnt, window)
     %
@@ -722,4 +762,19 @@ function [imagesEdited, imagesReady, mask_frgd, mask_bkgd] = load_edit_convert_i
         imagesReady(i).theTexture =      Screen('MakeTexture', window, imagesEdited{i});
     end
 end
+
+%% Done:
+%__________________________________________________________________________
+% [X] Custom adjustment of x_displacement.
+% [X] Present masks depending on which frame we are.
+% [X] Present stimuli depending on which frame we are.
+% [X] Add fade-in & fade-out for each stimulus.
+% [X] Test keyboard check (do we have problems with timing?).
+%     Apparently there is no lag!!
+% [X] Save to Github.
+% [X] Add overall fade-in & fade-out for entire block.
+% [X] Add values for mask alpha levels.
+% [X] Verify frames presented: save conditions vectors.
+% [X] Add stereogram at first screen for position calibration.
+% [X] Save mask, target, vergence bars positions: expmnt.
 
