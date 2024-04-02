@@ -4,22 +4,24 @@ function [data, expmnt] = ssvepCFS(subject, supps_alpha, pf_estimation)
 % Pending:
 % [X] Adjust mask and faces sizes: based on visual angle degrees.
 % [X] Add selection of short trials: 10 famfaces cycles? Change in duration
+% [X] Code UML psychophysics estimation.
 % [X] Set parts mask alpha from UML estimation.
 %  X  Test file pf_estimation_block
 %  X  Then insert PsychToolbox trial presentation.
 %  X  Then insert the code into this script.
+% [X] Can we use Webmorph for automatic face images processing?
+%  X  Yes, we can. At least with rigid align.
 % [ ] Add task: categorize Cneuro vs famous?
 % [ ] Prepare way to use UML object to define part's thresholds.
 
 % For the setup:
-% [ ] Code UML psychophysics estimation.
 % [ ] What can work as *divider*?
 %     Solution: Use the tall table, and construct a cardboard box with two
 %     tunnels (each for each eye), that can be adjusted in tilt and height.
 %     Important that the material does not reflect too much.
-% [ ] Do we need more unfamiliar faces?
-% [ ] Do we need more/differente familiar faces?
-% [ ] Can we use Webmorph for automatic face images processing?
+% [ ] Do we need more unfamiliar faces? Probably yes: use webmorphR
+% [ ] Do we need more/different familiar faces? Probably yes: use webmorphR
+
 
 clc;
 fprintf(    '_________________________________________________________________________\n');
