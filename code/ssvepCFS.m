@@ -2,17 +2,15 @@ function [data, expmnt] = ssvepCFS(subject, supps_alpha, pf_estimation)
 % Info
 % 
 % Pending:
-% [X] Adjust mask and faces sizes: based on visual angle degrees.
-% [X] Add selection of short trials: 10 famfaces cycles? Change in duration
-% [X] Code UML psychophysics estimation.
-% [X] Set parts mask alpha from UML estimation.
-%  X  Test file pf_estimation_block
-%  X  Then insert PsychToolbox trial presentation.
-%  X  Then insert the code into this script.
 % [X] Can we use Webmorph for automatic face images processing?
 %  X  Yes, we can. At least with rigid align.
 % [ ] Add task: categorize Cneuro vs famous?
+%     Define a specific face category (females), specify positions in the
+%     block, and score if: cneuro vs famous.
 % [ ] Prepare way to use UML object to define part's thresholds.
+% [ ] Later: clean ways that PF and main task use for loop.
+%     Main task uses the frames_cond, but PF uses trial level.
+% [ ] Estimate times: PF 5 mins approx? Main task 15 mins approx?
 
 % For the setup:
 % [ ] What can work as *divider*?
@@ -1237,3 +1235,10 @@ end
 % [X] Change place of Hz estimations (after PsychToolbox start).
 % [X] Save data from each block at the end of each block. BIDS format.
 % [X] Add selection of visible and invisible blocks.
+% [X] Adjust mask and faces sizes: based on visual angle degrees.
+% [X] Add selection of short trials: 10 famfaces cycles? Change in duration
+% [X] Code UML psychophysics estimation.
+% [X] Set parts mask alpha from UML estimation.
+%  X  Test file pf_estimation_block
+%  X  Then insert PsychToolbox trial presentation.
+%  X  Then insert the code into this script.
