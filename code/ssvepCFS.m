@@ -37,6 +37,9 @@ expmnt.savescreen =                 0;
 expmnt.PTB_SkipSyncTexts_config =   1;
 expmnt.BeampositionQueryWorkaround = 1;
 expmnt.set_custom_screen_size =     0;
+expmnt.custom_screen_center =       1;
+expmnt.xCenter_custom = 795;
+expmnt.yCenter_custom = 520;
 
 %% 60 or 85 Hz
 % Frequencies that can be tagged depending on monitor screen rate:
@@ -59,9 +62,9 @@ expmnt.fade_in_time =   2;
 expmnt.fade_out_time =  2;
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
 % Eyelink lab: distance = 635mm, screen size = 330x220 mm.
-% EEG lab with video beam: distance = 700mm?, screen size = ??
-screen_distance_mm =    [635]; 	% eye to center of screen distance: ?? mm.
-screen_size_mm =        [330, 220]; 	% width: ?mm, height: ?mm.
+% EEG lab with video beam: distance = 700mm?, screen size = 1520x950mm
+screen_distance_mm =    [1000]; 	% eye to center of screen distance: ?? mm.
+screen_size_mm =        [1520, 950]; 	% width: ?mm, height: ?mm.
 
 % Suppressions: based on averages of pupillometry study
 % expmnt.default_alpha_masks_supp1   = 0.04;
@@ -170,7 +173,7 @@ fix_lineWidth = 2;
 font_size = 15;
 which_stereogram    = expmnt.stereogram_for_exp;
 pos_first_text_line = 0.40;
-
+block_font_size = 15;
     
 %% Prepare stimuli
 %__________________________________________________________________________
@@ -245,6 +248,10 @@ keyUp =          KbName('UpArrow');
 keyDown =          KbName('DownArrow');
 keyLeft =          KbName('LeftArrow');
 keyRight =          KbName('RightArrow');
+key1 =          KbName('1!');
+key2 =          KbName('2@');
+tailorKeys =  zeros(1, 256);
+tailorKeys([escapeKey, spaceKey, keyUp, keyDown, keyLeft, keyRight, key1, key2]) = 1;
 responseKeys =  zeros(1, 256);
 responseKeys([escapeKey, spaceKey, keyUp, keyDown, keyLeft, keyRight]) = 1;
 pauseKeys =     zeros(1, 256);
@@ -264,6 +271,10 @@ ifi = Screen('GetFlipInterval', w);
 hz = Screen('FrameRate', w); % Nominal frame rate
 % Get the centre coordinate of the window.
 [xCenter, yCenter] = RectCenter(wRect);
+if expmnt.custom_screen_center
+    xCenter = expmnt.xCenter_custom;
+    yCenter = expmnt.yCenter_custom;
+end
 % Set up alpha-blending for smooth (anti-aliased) lines????
 Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 % Screen('HideCursorHelper', w);
@@ -275,17 +286,20 @@ screen_size_px =    [screenXpixels, screenYpixels]; 	% width: 800px, height: 600
 stim_center_deg =   [0, 0]; 		% The center of the stimuli matches the center of the screen: degrees of eccentricity
 
 % Stimuli:
-stim_size_deg =     [3.1, 4.1]; 		% width: , height: 
+% stim_size_deg =     [3.1, 4.1]; 		% width: , height:
+stim_size_deg =     [5, 6.6130]; 
 [stim_size_px, stim_size_mm, stim_center_px] =...
 		deg2px2(stim_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
 % Masks/stereograms/text boxes:
-mask_size_deg =     [4.5, 4.5]; 		% width: , height: 
+% mask_size_deg =     [4.5, 4.5]; 		% width: , height: 
+mask_size_deg =     [5.5, 5.5];
 [mask_size_px, mask_size_mm, mask_center_px] =...
 		deg2px2(mask_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
 % Vergence bars:
-vergence_size_deg =     [0.6, 4.5]; 		% width: , height: 
+% vergence_size_deg =     [0.6, 4.5]; 		% width: , height: 
+vergence_size_deg =     [0.73, 5.5];
 [vergence_size_px, vergence_size_mm, vergence_center_px] =...
 		deg2px2(vergence_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
@@ -296,6 +310,7 @@ expmnt.mask_width =             round(mask_size_px(1));
 expmnt.mask_height =            round(mask_size_px(2));
 expmnt.stimuli_width =          round(stim_size_px(1));
 expmnt.stimuli_height =         round(stim_size_px(2));
+expmnt.x_displacement =         round(expmnt.mask_width*3);
 
 % Target box:
 target_box =    [0 0 expmnt.stimuli_width expmnt.stimuli_height]; % Position of target.
@@ -376,6 +391,71 @@ end
 clearvars texts_directory;
 
 
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% First screen: loading images. Text: 'Preparando las imagenes...'
+%__________________________________________________________________________
+
+Screen('TextSize', w, font_size);
+KbQueueCreate([], tailorKeys);
+KbQueueStart;
+KbQueueFlush();
+x_displacement_set = 0;
+while x_displacement_set == 0
+    [vergence_bars_positions, fix_position_left, fix_position_right, textBox, stereogram_box] =...
+            create_static_images_boxes(expmnt, xCenter, yCenter, screenYpixels, mask_box);
+    % Draw stereograms:
+    Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_left, [], stereogram_box.left, []);
+    Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_right, [], stereogram_box.right, []);
+%     Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+%     Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+    Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+    Screen('Flip', w);
+    [pressed, firstPress] = KbQueueCheck;
+    if pressed
+        if firstPress(keyLeft)
+            expmnt.x_displacement = expmnt.x_displacement - 5;
+        end
+        if firstPress(keyRight)
+            expmnt.x_displacement = expmnt.x_displacement + 5;
+        end
+        if firstPress(keyUp)
+            yCenter = yCenter - 5;
+        end
+        if firstPress(keyDown)
+            yCenter = yCenter + 5;
+        end
+        if firstPress(spaceKey)
+            x_displacement_set = 1;
+        end
+        if firstPress(key1)
+            xCenter = xCenter - 5;
+        end
+        if firstPress(key2)
+            xCenter = xCenter + 5;
+        end
+        if firstPress(escapeKey)
+            closePT
+            return
+        end
+    end
+end
+expmnt.xCenter = xCenter;
+expmnt.yCenter = yCenter;
+if expmnt.savescreen; printscreenArray{1} = Screen('GetImage', w); end; %% Printscreen and save file.
+WaitSecs(.1);
+
+% Preparando imagenes...
+Screen('DrawTextures', w, textsImages(1).textures, [], [textBox.left; textBox.right]', 0, [], []);
+%     DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.left);
+%     DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
+Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+Screen('Flip', w);
+WaitSecs(.1);
+
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Stimuli fixed positions:
 %__________________________________________________________________________
@@ -405,64 +485,6 @@ left_pos_offset =   [-expmnt.position_task_offset, 0, -expmnt.position_task_offs
 right_pos_offset =  [ expmnt.position_task_offset, 0,  expmnt.position_task_offset, 0];
 
 
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% First screen: loading images. Text: 'Preparando las imagenes...'
-%__________________________________________________________________________
-
-Screen('TextSize', w, font_size);
-KbQueueCreate([], responseKeys);
-KbQueueStart;
-KbQueueFlush();
-x_displacement_set = 0;
-while x_displacement_set == 0
-    % Draw stereograms:
-    Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_left, [], stereogram_box.left, []);
-    Screen('DrawTextures', w, stereograms(which_stereogram(1)).tex_right, [], stereogram_box.right, []);
-    Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
-    Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-    Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-    Screen('Flip', w);
-    [pressed, firstPress] = KbQueueCheck;
-    if pressed
-        if firstPress(keyLeft)
-            expmnt.x_displacement = expmnt.x_displacement - 5;
-        end
-        if firstPress(keyRight)
-            expmnt.x_displacement = expmnt.x_displacement + 5;
-        end
-        if firstPress(keyUp)
-            expmnt.y_displacement = expmnt.y_displacement - 5;
-        end
-        if firstPress(keyDown)
-            expmnt.y_displacement = expmnt.y_displacement + 5;
-        end
-        if firstPress(spaceKey)
-            x_displacement_set = 1;
-        end
-        if firstPress(escapeKey)
-            closePT
-            if ~exist('data', 'var')
-                data = [];
-            end
-            return
-        end
-        [vergence_bars_positions, fix_position_left, fix_position_right, textBox, stereogram_box] =...
-            create_static_images_boxes(expmnt, xCenter, yCenter, screenYpixels, mask_box);
-    end
-end
-if expmnt.savescreen; printscreenArray{1} = Screen('GetImage', w); end; %% Printscreen and save file.
-WaitSecs(.1);
-
-% Preparando imagenes...
-Screen('DrawTextures', w, textsImages(1).textures, [], [textBox.left; textBox.right]', 0, [], []);
-%     DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.left);
-%     DrawFormattedText(w, 'Preparando las imagenes...', 'center', screenYpixels * pos_first_text_line, [1 1 1], [], [], [], [], [], textBox.right);
-Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
-Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
-Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-Screen('Flip', w);
-WaitSecs(.1);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -535,6 +557,9 @@ end
 
 % if pf_estimation == 0
 
+KbQueueCreate([], responseKeys);
+KbQueueStart;
+KbQueueFlush();
     trial_count = 0;
     
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -609,8 +634,8 @@ for block = 1:length(expmnt.block_conds_order)
     Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_left, [], stereogram_box.left, []);
     Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_right, [], stereogram_box.right, []);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-    Screen('TextSize', w, 15); %font_size
-    DrawFormattedText(w, sprintf('Block: %i, Trial: %i', 1, 2), screenXpixels*.05, screenYpixels*.95, [1,1,1]); %posY_trial_info posX_trial_info
+    Screen('TextSize', w, block_font_size); %
+    DrawFormattedText(w, sprintf('Block: %i', block), screenXpixels*.01, screenYpixels-block_font_size, [1,1,1]); %posY_trial_info posX_trial_info
     Screen('Flip', w);
     WaitSecs(.5);
     if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
@@ -847,7 +872,7 @@ for block = 1:length(expmnt.block_conds_order)
                 trial_response = 'Beyonce';
                 trial_response_time = firstPress(keyLeft);
             end
-            if firstPress(escapeKey)
+            if firstPress(spaceKey)
                 response_correct = 0;
                 trial_response = [];
                 trial_response_time = [];
@@ -857,7 +882,7 @@ for block = 1:length(expmnt.block_conds_order)
                 response_correct = 0;
                 trial_response = [];
                 trial_response_time = [];
-                if firstPress(spaceKey)
+                if firstPress(escapeKey)
                     closePT
                     return;
                 end
@@ -1043,6 +1068,9 @@ for block = 1:length(expmnt.block_conds_order)
 
     
     %% Save pf estimation
+    if ~exist('data', 'var')
+        data = [];
+    end
     if pf_estimation == 1
         save([filename, '_beh.mat'], 'data', 'expmnt', 'uml_pf');
     else
