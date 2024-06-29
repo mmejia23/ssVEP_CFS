@@ -5,10 +5,10 @@ images_list = dir('C:\Users\cthul\Dropbox\PROYECTOS\0-PhD\ssVEP_CFS\stimuli\cara
 images_list = {images_list.name}
 
 regexp('familiar_cneuro_m_Adrian.png',...
-    '(?<cond>\w+)_(?<where>\w+)_(?<sex>\w+)_(?<name>\w+).png', 'names')
+    '(?<cond>\w+)_(?<where>\w+)_(?<sex>\w+)_(?<name>\w+)_(?<num>\w+).png', 'names')
 
 images_str = regexp(images_list,...
-    '(?<cond>\w+)_(?<where>\w+)_(?<sex>\w+)_(?<name>\w+).png', 'names')
+    '(?<cond>\w+)_(?<stim>\w+)_(?<where>\w+)_(?<sex>\w+)_(?<name>\w+)_(?<num>\w+).png', 'names')
 images_str = [images_str{:}];
 images_str(1).cond
 images_str(1).where

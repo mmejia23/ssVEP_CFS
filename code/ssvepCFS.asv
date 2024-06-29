@@ -35,6 +35,7 @@ addpath('UML_ver2.2/');
 addpath('convert_screen_sizes');
 expmnt.savescreen =                 0;
 expmnt.PTB_SkipSyncTexts_config =   1;
+expmnt.debug_pt =                   1;
 expmnt.BeampositionQueryWorkaround = 1;
 expmnt.set_custom_screen_size =     0;
 
@@ -79,12 +80,6 @@ if any(find(strcmp(varargin, 'pf')))
     pf_estimation = varargin{find(strcmp(varargin, 'pf')) + 1};
 else
     pf_estimation = 0;
-end
-
-if any(find(strcmp(varargin, 'debug')))
-    expmnt.debug_pt = varargin{find(strcmp(varargin, 'debug')) + 1};
-else
-    expmnt.debug_pt = 0;
 end
 
 % Blocks and trials
@@ -440,13 +435,6 @@ while x_displacement_set == 0
         if firstPress(spaceKey)
             x_displacement_set = 1;
         end
-        if firstPress(escapeKey)
-            closePT
-            if ~exist('data', 'var')
-                data = [];
-            end
-            return
-        end
         [vergence_bars_positions, fix_position_left, fix_position_right, textBox, stereogram_box] =...
             create_static_images_boxes(expmnt, xCenter, yCenter, screenYpixels, mask_box);
     end
@@ -517,6 +505,23 @@ if expmnt.debug_pt == 1
     WaitSecs(2);
 else
     Screen('HideCursorHelper', w);
+    KbWait;
+    WaitSecs(.1);
+end
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Third Screen: stereogram to confirm vergence.
+%__________________________________________________________________________
+% Draw stereograms:
+Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_left, [], stereogram_box.left, []);
+Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_right, [], stereogram_box.right, []);
+Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+Screen('Flip', w);
+WaitSecs(.1);
+if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
+if expmnt.debug_pt == 1
+    WaitSecs(2);
+else
     KbWait;
     WaitSecs(.1);
 end
@@ -602,26 +607,6 @@ end
     
 for block = 1:length(expmnt.block_conds_order)
 
-    %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Screen: stereogram to confirm vergence.
-    %__________________________________________________________________________
-    % Draw stereograms:
-    Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_left, [], stereogram_box.left, []);
-    Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_right, [], stereogram_box.right, []);
-    Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-    Screen('TextSize', w, 15); %font_size
-    DrawFormattedText(w, sprintf('Block: %i, Trial: %i', 1, 2), screenXpixels*.05, screenYpixels*.95, [1,1,1]); %posY_trial_info posX_trial_info
-    Screen('Flip', w);
-    WaitSecs(.5);
-    if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
-    if expmnt.debug_pt == 1
-        WaitSecs(3);
-    else
-        KbWait;
-        WaitSecs(.1);
-    end
-    
-    
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % screen: press any key to begin. 'Presiona cualquier tecla \n\npara iniciar.'
     %__________________________________________________________________________
@@ -847,20 +832,10 @@ for block = 1:length(expmnt.block_conds_order)
                 trial_response = 'Beyonce';
                 trial_response_time = firstPress(keyLeft);
             end
-            if firstPress(escapeKey)
+            if firstPress(spaceKey)
                 response_correct = 0;
                 trial_response = [];
                 trial_response_time = [];
-                break;
-            end
-            if firstPress(escapeKey)
-                response_correct = 0;
-                trial_response = [];
-                trial_response_time = [];
-                if firstPress(spaceKey)
-                    closePT
-                    return;
-                end
                 break;
             end
             response_correct = strcmp(trial_response, this_trial__identity);
@@ -1432,7 +1407,13 @@ end
 %% Close PsychToolbox
 %__________________________________________________________________________
 
-closePT;
+% Release keyboard with PsychToolbox, wait and clear workspace:
+KbQueueRelease();
+KbReleaseWait();
+WaitSecs(1);
+sca;
+clear Screen;
+ListenChar(0); % Restore keyboard output to Matlab
 
 %% Plot test of cycles:
 %__________________________________________________________________________
@@ -1611,19 +1592,6 @@ function [masks_alpha_blending] = calculate_alpha_blending_threshold(plot_pf_fun
     end
     fprintf('\n=====================================================');
     fprintf('\nPF %s: alpha= %.2f | beta= %.2f | lambda= %.2f |', uml_object.userdata01, uml_object.phi(end,1), uml_object.phi(end,2), uml_object.phi(end,4));
-end
-
-%% Function to close PsychToolbox cleanly:
-function [] = closePT()
-
-    % Release keyboard with PsychToolbox, wait and clear workspace:
-    KbQueueRelease();
-    KbReleaseWait();
-    WaitSecs(1);
-    sca;
-    clear Screen;
-    ListenChar(0); % Restore keyboard output to Matlab
-
 end
 
 %% Done:
