@@ -2,25 +2,23 @@ function [data, expmnt] = ssvepCFS(subject, varargin)
 % Info
 % 
 % Pending:
-% [X] Can we use Webmorph for automatic face images processing?
-%  X  Yes, we can. At least with rigid align.
-% [-] Add task: categorize Cneuro vs famous?
-%     Define a specific face category (females), specify positions in the
-%     block, and score if: cneuro vs famous.
+% [X] Add four conditions: visible vs invisible, upright vs inverted faces
+% [ ] Prepare at least 15 photos (natural) of 10 identities.
+% [ ] Show screen with face exemplars for response.
+% [X] Clean response collection, missing some trials.. 1 and 2 each block
+% [ ] Confirm that PF task works well and saves data correctly.
 % [ ] Prepare way to use UML object to define part's thresholds.
-% [ ] Later: clean ways that PF and main task use for loop.
-%     Main task uses the frames_cond, but PF uses trial level.
 % [ ] Estimate times: PF 5 mins approx? Main task 15 mins approx?
+% [ ] Sync with triggerbox.
+% [X] Add more stereograms and show different one each block.
 
-% For the setup:
-% [X] Set custom high.
-% [ ] 9 possible answers: 9 identities, show screen with face exemplars.
-% [X] What can work as *divider*?
-%     Solution: Use the tall table, and construct a cardboard box with two
-%     tunnels (each for each eye), that can be adjusted in tilt and height.
-%     Important that the material does not reflect too much.
 % [ ] Do we need more unfamiliar faces? Probably yes: use webmorphR
 % [ ] Do we need more/different familiar faces? Probably yes: use webmorphR
+% [ ] Fotos completas
+% [X] Que la ultima no sea familiar
+% [ ] Agregar la cantidad de estimulos para igualar a Rossion
+% [ ] Programar condicion con un solo estimulo central
+% [ ] Programar condicion sin CFS
 
 
 clc;
@@ -37,9 +35,6 @@ expmnt.savescreen =                 0;
 expmnt.PTB_SkipSyncTexts_config =   1;
 expmnt.BeampositionQueryWorkaround = 1;
 expmnt.set_custom_screen_size =     0;
-expmnt.custom_screen_center =       1;
-expmnt.xCenter_custom = 795;
-expmnt.yCenter_custom = 520;
 
 %% 60 or 85 Hz
 % Frequencies that can be tagged depending on monitor screen rate:
@@ -52,19 +47,16 @@ expmnt.yCenter_custom = 520;
 %% Set experiment variables
 %__________________________________________________________________________
 dir_images = '../stimuli/caras_experimento/';
+dir_images_rep = 'C:\Users\cthul\Dropbox\PROYECTOS\0-PhD\ssVEP_CFS\stimuli\caras_familiares_edited';
 filename_structure = '../data/sub-%s_task-%s';
 expmnt.dir_of_texts_png_files = '../stimuli/textos/';
 
 % Dynamics
 expmnt.masks_hz =       8.5; % approx, is defined according to monitor framerate
-expmnt.baseline_hz =    6; % We can tinker this one; 3; 6;
+expmnt.baseline_hz =    3; % We can tinker this one; 3; 6;
 expmnt.fade_in_time =   2;
 expmnt.fade_out_time =  2;
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
-% Eyelink lab: distance = 635mm, screen size = 330x220 mm.
-% EEG lab with video beam: distance = 700mm?, screen size = 1520x950mm
-screen_distance_mm =    [1000]; 	% eye to center of screen distance: ?? mm.
-screen_size_mm =        [1520, 950]; 	% width: ?mm, height: ?mm.
 
 % Suppressions: based on averages of pupillometry study
 % expmnt.default_alpha_masks_supp1   = 0.04;
@@ -104,26 +96,46 @@ else
     expmnt.stim_per_trial =     expmnt.odd_frequency * 2 + 3;
     expmnt.trial_duration =     expmnt.stim_per_trial ./ expmnt.baseline_hz;
     expmnt.n_trials_per_block = 3;
-    expmnt.block_conds_order =  [1, 2, 1, 2];
+    expmnt.block_conds_order =  [2, 3];
 end
 expmnt.trial_conds_order =  repmat([0,1], length(expmnt.block_conds_order), expmnt.n_trials_per_block);
-expmnt.identity_orders = {'BarackObama','RaulCastro','DiazCanel','Beyonce'};
+expmnt.identity_orders = {'BarackObama','RaulCastro','DiazCanel','Beyonce','OmaraPortuondo'};
 expmnt.identity_orders = repmat(expmnt.identity_orders,...
             length(expmnt.block_conds_order),...
             ceil(expmnt.n_trials_per_block./length(expmnt.identity_orders)));
         
-% Sizes
+%% Sizes
+
+% Screen sizes:
+% Eyelink lab: distance = 635mm, screen size = 330x220 mm.
+screen_distance_mm =    [635]; 	% eye to center of screen distance: ?? mm.
+screen_size_mm =        [520, 290]; 	% width: ?mm, height: ?mm.
+% EEG lab with video beam: distance = 700mm?, screen size = 1520x950mm
+% screen_distance_mm =    [1000]; 	% eye to center of screen distance: ?? mm.
+% screen_size_mm =        [1520, 950]; 	% width: ?mm, height: ?mm.
+expmnt.custom_screen_center =   0; % 1 for EEG clinic at CNeuro.
+expmnt.xCenter_custom =         795;
+expmnt.yCenter_custom =         520;
 
 % Stimuli:
+% stim_size_deg =     [3.1, 4.1]; 		% width: , height:
+stim_size_deg =     [5, 6.6130]; 
+% Set this default, but later is changed:
 expmnt.stimuli_width =          100;
 expmnt.stimuli_height =         133;
 
 % Masks box (same as stereograms and text boxes):
+% mask_size_deg =     [4.5, 4.5]; 		% width: , height: 
+mask_size_deg =     [5.5, 5.5];
+% Set this default, but later is changed:
 expmnt.mask_width =             240;
 expmnt.mask_height =            240;
 expmnt.num_masks =              500; %approx
 
 % Vergence bars
+% vergence_size_deg =     [0.6, 4.5]; 		% width: , height: 
+vergence_size_deg =     [0.73, 5.5];
+% Set this default, but later is changed:
 expmnt.vergence_bar_width =     32;
 expmnt.vergence_bar_height =    240;
 
@@ -135,10 +147,10 @@ expmnt.gaussian_envelope   = 0; % If blur edges with gaussian envelope.
 expmnt.position_task_offset =   0;
 expmnt.show_vergence_bars =     1;
 expmnt.vergence_bar_file =      '../stimuli/texture_vertical.bmp';
-expmnt.dir_of_stereograms =     '../stimuli/stereograms';
+expmnt.dir_of_stereograms =     '../stimuli/stereograms2';
 expmnt.stereogram_shapes =      {'square', 'T', 'square', 'square', 'upper-square', 'lower-square', 'two-squares', 'L', 'U', 'big-square'};
-expmnt.stereogram_for_pf               = [2, 8, 9, 2, 8];
-expmnt.stereogram_for_exp              = [2, 8, 9, 2, 8];
+expmnt.stereogram_for_pf               = [1, 2, 3, 8, 5, 9, 10, 13, 15];
+expmnt.stereogram_for_exp              = [1, 2, 3, 8, 5, 9, 10, 13, 15];
 
 expmnt.fix_color = [1,1,1];
 expmnt.img_lum_mean    = 120; % background x im_white, equal to background mean luminance.
@@ -185,9 +197,12 @@ unfamiliar_faces = dir([dir_images filesep 'unfamiliar*.png']);
 unfamiliar_faces = {unfamiliar_faces.name};
 unfamiliar_houses = dir([dir_images filesep 'unfamiliar_house*.png']);
 unfamiliar_houses = {unfamiliar_houses.name};
+familiar_faces_rep = dir([dir_images_rep filesep 'familiar*.png']);
+familiar_faces_rep = {familiar_faces_rep.name};
 assert(length(familiar_faces)>0 & ...
     length(unfamiliar_faces)>0 & ...
-    length(unfamiliar_houses)>0);
+    length(unfamiliar_houses)>0 & ...
+    length(familiar_faces_rep)>0);
 
 
 %% Filename
@@ -302,6 +317,11 @@ mask_size_deg =     [5.5, 5.5];
 vergence_size_deg =     [0.73, 5.5];
 [vergence_size_px, vergence_size_mm, vergence_center_px] =...
 		deg2px2(vergence_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
+    
+% Response screen items:
+responseItem_size_deg =     mask_size_deg./4;
+[responseItem_size_px, responseItem_size_mm, responseItem_center_px] =...
+		deg2px2(responseItem_size_deg, screen_size_px, screen_distance_mm, screen_size_mm, stim_center_deg);
 
 % Set sizes:
 expmnt.vergence_bar_width =     round(vergence_size_px(1));
@@ -310,13 +330,14 @@ expmnt.mask_width =             round(mask_size_px(1));
 expmnt.mask_height =            round(mask_size_px(2));
 expmnt.stimuli_width =          round(stim_size_px(1));
 expmnt.stimuli_height =         round(stim_size_px(2));
-expmnt.x_displacement =         round(expmnt.mask_width*3);
+expmnt.x_displacement =         round(expmnt.mask_width/2 + expmnt.vergence_bar_width*4);
 
 % Target box:
 target_box =    [0 0 expmnt.stimuli_width expmnt.stimuli_height]; % Position of target.
 % Masks box:
 mask_box =      [0, 0, expmnt.mask_width, expmnt.mask_height];
 expmnt.vergence_bar = [0, 0, expmnt.vergence_bar_width, expmnt.vergence_bar_height];
+responseItem_box = [0, 0, responseItem_size_px(1), responseItem_size_px(2)];
 
 %% Prepare conditions vectors
 %__________________________________________________________________________
@@ -365,10 +386,11 @@ vergence(1).tex = Screen('MakeTexture', w, vergence(1).img);
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load stereograms:
 %__________________________________________________________________________
-stereograms_list = dir(fullfile(expmnt.dir_of_stereograms, '*l.jpg'));
-for i = 1:length(stereograms_list)
-    stereograms(i).img_left =  imread(fullfile(expmnt.dir_of_stereograms, sprintf('stereogram%02d_l.jpg', i)));
-    stereograms(i).img_right = imread(fullfile(expmnt.dir_of_stereograms, sprintf('stereogram%02d_r.jpg', i)));
+left_stereograms_list = dir(fullfile(expmnt.dir_of_stereograms, '*l.png'));
+right_stereograms_list = dir(fullfile(expmnt.dir_of_stereograms, '*r.png'));
+for i = 1:length(left_stereograms_list)
+    stereograms(i).img_left =  imread(fullfile(expmnt.dir_of_stereograms, left_stereograms_list(i).name));
+    stereograms(i).img_right = imread(fullfile(expmnt.dir_of_stereograms, right_stereograms_list(i).name));
 
     stereograms(i).tex_left =  Screen('MakeTexture', w, stereograms(i).img_left);
     stereograms(i).tex_right = Screen('MakeTexture', w, stereograms(i).img_right);
@@ -484,7 +506,18 @@ target_box_right =  CenterRectOnPointd(target_box_right, xCenter, yCenter);
 left_pos_offset =   [-expmnt.position_task_offset, 0, -expmnt.position_task_offset, 0];
 right_pos_offset =  [ expmnt.position_task_offset, 0,  expmnt.position_task_offset, 0];
 
-
+% Response screen positions:
+responseItem_box = CenterRectOnPointd(responseItem_box, xCenter, yCenter);
+responseItem_box = responseItem_box + ...
+    [expmnt.x_displacement, expmnt.y_displacement,...
+    expmnt.x_displacement, expmnt.y_displacement];
+% 9 response options, in a 3x3 grid:
+responseItem_rel_pos = [-.25,.25,-.25,.25; 0,.25,0,.25; .25,.25,.25,.25; ...
+                        -.25,0,-.25,0; 0,0,0,0; .25,0,.25,0;...
+                        -.25,-.25,-.25,-.25; 0,-.25,0,-.25; .25,-.25,.25,-.25];
+responseItem_rel_pos = responseItem_rel_pos .* expmnt.mask_width;
+responseItem_pos_all = repmat(responseItem_box, 9, 1);
+responseItem_pos_all = responseItem_pos_all + responseItem_rel_pos;
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -497,6 +530,11 @@ if 1
     [loadedStimEdited, loadedStim, mask_frgd, mask_bkgd] =...
         load_edit_convert_imgs([unfamiliar_faces, familiar_faces, unfamiliar_houses],...
         dir_images, expmnt, w);
+end
+if 1
+    [loadedFamEdited, loadedFam, ~, ~] =...
+        load_edit_convert_imgs([familiar_faces_rep],...
+        dir_images_rep, expmnt, w);
 end
 % Define structure with characteristics of each image:
 images_cell = [unfamiliar_faces, familiar_faces, unfamiliar_houses];
@@ -631,8 +669,8 @@ for block = 1:length(expmnt.block_conds_order)
     % Screen: stereogram to confirm vergence.
     %__________________________________________________________________________
     % Draw stereograms:
-    Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_left, [], stereogram_box.left, []);
-    Screen('DrawTextures', w, stereograms(which_stereogram(2)).tex_right, [], stereogram_box.right, []);
+    Screen('DrawTextures', w, stereograms(which_stereogram(block+1)).tex_left, [], stereogram_box.left, []);
+    Screen('DrawTextures', w, stereograms(which_stereogram(block+1)).tex_right, [], stereogram_box.right, []);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
     Screen('TextSize', w, block_font_size); %
     DrawFormattedText(w, sprintf('Block: %i', block), screenXpixels*.01, screenYpixels-block_font_size, [1,1,1]); %posY_trial_info posX_trial_info
@@ -668,7 +706,6 @@ for block = 1:length(expmnt.block_conds_order)
     %% Start block loop vars:
     %__________________________________________________________________________
     
-    trial_count =           trial_count + 1;
     timestamps =            nan(1, length(frames_conds));
     trial_responses =       [];
     trial_response_times =  [];
@@ -690,6 +727,7 @@ for block = 1:length(expmnt.block_conds_order)
     %% Start trial frames:
     
     for trial = 1:expmnt.n_trials_per_block
+        trial_count =           trial_count + 1;
         % Faces vector:
         frames_baseline = nan(1, ceil(length(frames_conds)/baseline_framerate));
         temp = [];
@@ -697,50 +735,65 @@ for block = 1:length(expmnt.block_conds_order)
         idx_unfamiliar_houses = find(strcmp({images_str.cond}, 'unfamiliar') & strcmp({images_str.stim}, 'house'));
         idx_familiar_faces = find(strcmp({images_str.cond}, 'familiar') & strcmp({images_str.stim}, 'face'));
         
+        % Every Xth image, present the oddball stimulus:
+        idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_baseline);
+        
         switch expmnt.block_conds_order(block)
-            case 1
-                % Baseline: houses; oddball: unfamiliar faces
-                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_houses))
-                    temp = [temp, Shuffle(idx_unfamiliar_houses)];
-                end
-            case 2
-                % Baseline: unfamiliar faces; oddball: familiar faces
-                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
-                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
-                end
             case 0
                 % PF estimation
                 for i = 1:ceil(length(frames_baseline)/length([familiar_faces, unfamiliar_faces]))
                     temp = [temp, Shuffle([idx_unfamiliar_faces, idx_familiar_faces])];
                 end
-        end
-        % This is a vector with indices for each face to be presented:
-        frames_baseline = temp(1:length(frames_baseline));
-        clearvars temp;
-        % Every Xth image, present the oddball stimulus:
-        idx_oddball = expmnt.odd_frequency:expmnt.odd_frequency:length(frames_baseline);
-        this_trial__identity = expmnt.identity_orders{block, trial};
-        switch expmnt.block_conds_order(block)
-            case 1
-                temp = Shuffle(idx_unfamiliar_faces);
-                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
-            case 2
-                switch this_trial__identity
-                    case 'BarackObama'
-                        idx_correct_faces = find(strcmp({images_str.name}, 'BarackObama') & strcmp({images_str.cond}, 'familiar'));
-                    case 'Beyonce'
-                        idx_correct_faces = find(strcmp({images_str.name}, 'Beyonce') & strcmp({images_str.cond}, 'familiar'));
-                    case 'RaulCastro'
-                        idx_correct_faces = find(strcmp({images_str.name}, 'RaulCastro') & strcmp({images_str.cond}, 'familiar'));
-                    case 'DiazCanel'
-                        idx_correct_faces = find(strcmp({images_str.name}, 'DiazCanel') & strcmp({images_str.cond}, 'familiar'));
-                end
-%                 temp = Shuffle(idx_familiar_faces);
-                temp = Shuffle(idx_correct_faces);
-                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
-            case 0
+                % This is a vector with indices for each face to be presented:
+                frames_baseline = temp(1:length(frames_baseline));
+                clearvars temp;
                 frames_baseline = frames_baseline(1);
                 this_trial__images_cond = images_str(frames_baseline).cond;
+                this_trial__stim_orientation = 0;
+            case 1
+                % Baseline: houses; oddball: unfamiliar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_houses))
+                    temp = [temp, Shuffle(idx_unfamiliar_houses)];
+                end
+                % This is a vector with indices for each face to be presented:
+                frames_baseline = temp(1:length(frames_baseline));
+                clearvars temp;
+                temp = Shuffle(idx_unfamiliar_faces);
+                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__stim_orientation = 0;
+                this_trial__identity = 'none';
+            case 2
+                % Baseline: unfamiliar faces; oddball: familiar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
+                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
+                end
+                % This is a vector with indices for each face to be presented:
+                frames_baseline = temp(1:length(frames_baseline));
+                clearvars temp;
+                this_trial__identity = expmnt.identity_orders{block, trial};
+                idx_correct_faces = find(strcmp({images_str.name}, this_trial__identity) & strcmp({images_str.cond}, 'familiar'));
+                temp = [];
+                for tmp_i = 1:(ceil(length(idx_oddball)/length(idx_correct_faces)))
+                    temp = [temp, Shuffle(idx_correct_faces)];
+                end
+                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__stim_orientation = 0;
+            case 3
+                % Baseline: unfamiliar faces; oddball: familiar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
+                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
+                end
+                % This is a vector with indices for each face to be presented:
+                frames_baseline = temp(1:length(frames_baseline));
+                clearvars temp;
+                this_trial__identity = expmnt.identity_orders{block, trial};
+                idx_correct_faces = find(strcmp({images_str.name}, this_trial__identity) & strcmp({images_str.cond}, 'familiar'));
+                temp = [];
+                for tmp_i = 1:(ceil(length(idx_oddball)/length(idx_correct_faces)))
+                    temp = [temp, Shuffle(idx_correct_faces)];
+                end
+                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__stim_orientation = 180;
         end
         clearvars temp;
 
@@ -826,7 +879,7 @@ for block = 1:length(expmnt.block_conds_order)
             Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
             % Draw target:
             Screen('DrawTextures', w, loadedStim(frames_baseline(frame)).theTexture, [],...
-                this_trial__target_position_xy, 0, [], 1-flipped(frame));
+                this_trial__target_position_xy, this_trial__stim_orientation, [], 1-flipped(frame));
             % Draw masks:
             Screen('DrawTextures', w, masksTex(frames_masks(frame)).all, [],...
                 this_trial__masks_position_xy, 180, [], this_trial__mask_alpha);
@@ -842,13 +895,18 @@ for block = 1:length(expmnt.block_conds_order)
             Screen('Flip', w);
         end
         
-        Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
-        Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+        % Positions of identities in response screen:
         Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-        DrawFormattedText(w, 'Diaz Canel',  .50*screenXpixels, .25*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
-        DrawFormattedText(w, 'Raul Castro', .75*screenXpixels, .50*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
-        DrawFormattedText(w, 'Obama',       .50*screenXpixels, .75*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
-        DrawFormattedText(w, 'Beyoncé',     .25*screenXpixels, .50*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
+        Screen('DrawTextures', w, loadedFam(1).theTexture, [],...
+                responseItem_pos_all', this_trial__stim_orientation, [], 1);
+        
+%         Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
+%         Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
+%         Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
+%         DrawFormattedText(w, 'Diaz Canel',  .50*screenXpixels, .25*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
+%         DrawFormattedText(w, 'Raul Castro', .75*screenXpixels, .50*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
+%         DrawFormattedText(w, 'Obama',       .50*screenXpixels, .75*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
+%         DrawFormattedText(w, 'Beyoncé',     .25*screenXpixels, .50*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
         Screen('Flip', w);
         
         KbWait;
@@ -889,7 +947,7 @@ for block = 1:length(expmnt.block_conds_order)
                 break;
             end
             response_correct = strcmp(trial_response, this_trial__identity);
-            trial_responses = {trial_responses, trial_response};
+            trial_responses = [trial_responses, trial_response];
             trial_response_times = [trial_response_times, trial_response_time];
         else
             response_correct = 0;
@@ -897,10 +955,11 @@ for block = 1:length(expmnt.block_conds_order)
         end
         
         if pf_estimation == 0
+            WaitSecs(.2);
             Screen('DrawLines', w, fixCoordsLeft, fix_lineWidth, fix_color, fix_position_left, 2);
             Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, fix_color, fix_position_right, 2);
             Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, 0, [], []);
-            DrawFormattedText(w, 'Confianza?',    0*screenXpixels, .25*screenYpixels, [1 1 1], [], [], [], [], [], textBox.right);
+            DrawFormattedText(w, 'Confianza?',    0, .25, [1 1 1], [], [], [], [], [], textBox.right);
             DrawFormattedText(w, '1    2    3', 'center',   'center', [1 1 1], [], [], [], [], [], textBox.right);
             Screen('Flip', w);
 
@@ -917,7 +976,7 @@ for block = 1:length(expmnt.block_conds_order)
                     response_conf = 2;
                     response_conf_time = firstPress(keyDown);
                 end
-                if firstPress(spaceRight)
+                if firstPress(keyRight)
                     response_conf = 3;
                     response_conf_time = firstPress(keyRight);
                 end
@@ -1022,6 +1081,7 @@ for block = 1:length(expmnt.block_conds_order)
     data(trial_count).images_idx =            this_trial__images_idx;
     data(trial_count).images_idx =            this_trial__images_names;
     data(trial_count).timestamps =            timestamps;
+    data(trial_count).stim_orientation =      this_trial__stim_orientation;
     data(trial_count).this_trial__identity =  this_trial__identity;
     data(trial_count).trial_response =        trial_response;
     data(trial_count).trial_response_time =   trial_response_time;
@@ -1656,6 +1716,7 @@ end
 
 %% Done:
 %__________________________________________________________________________
+% March 2024:
 % [X] Custom adjustment of x_displacement.
 % [X] Present masks depending on which frame we are.
 % [X] Present stimuli depending on which frame we are.
@@ -1678,3 +1739,17 @@ end
 %  X  Test file pf_estimation_block
 %  X  Then insert PsychToolbox trial presentation.
 %  X  Then insert the code into this script.
+% June 2024:
+% [X] Can we use Webmorph for automatic face images processing?
+%  X  Yes, we can. At least with rigid align.
+% [-] Add task: categorize Cneuro vs famous?
+%     Define a specific face category (females), specify positions in the
+%     block, and score if: cneuro vs famous.
+% [X] Later: clean ways that PF and main task use for loop.
+%     Main task uses the frames_cond, but PF uses trial level.
+% [X] Set custom high.
+% [X] What can work as *divider*?
+%     Solution: Use the tall table, and construct a cardboard box with two
+%     tunnels (each for each eye), that can be adjusted in tilt and height.
+%     Important that the material does not reflect too much.
+
