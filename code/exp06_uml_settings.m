@@ -57,6 +57,7 @@ if strcmp(pf_type, 'fam')
         'mu',30,...                %mean of the prior distribution.
         'std',20 ...               %standard deviation of the prior distribution.
         );
+    par.gamma = 0.5;
     
 elseif strcmp(pf_type, 'face')
     par.alpha = struct(...
@@ -76,6 +77,7 @@ elseif strcmp(pf_type, 'face')
         'mu',30,...                %mean of the prior distribution.
         'std',20 ...               %standard deviation of the prior distribution.
         );
+    par.gamma = 0.5;
     
 elseif strcmp(pf_type, 'fam_abrupt')
     par.alpha = struct(...
@@ -95,6 +97,7 @@ elseif strcmp(pf_type, 'fam_abrupt')
         'mu',30,...                %mean of the prior distribution.
         'std',20 ...               %standard deviation of the prior distribution.
         );
+    par.gamma = 0.5;
     
 elseif strcmp(pf_type, 'fam_faded')
     par.alpha = struct(...
@@ -114,9 +117,28 @@ elseif strcmp(pf_type, 'fam_faded')
         'mu',30,...                %mean of the prior distribution.
         'std',20 ...               %standard deviation of the prior distribution.
         );
-end
+    par.gamma = 0.5;
+    
+elseif strcmp(pf_type, 'fam_9AFC')
+    par.alpha = struct(...
+        'limits',[0.50 0.95],...       %range of the parameter space for alpha
+        'N',71,...                %number of alpha values. If this value is set to 1, then the first element of alpha.limits would be the assumed alpha and the alpha parameter is not estimated.
+        'scale','lin',...         %the linear or log spacing. Choose between 'lin' and 'log'.
+        'dist','norm',...         %prior distribution of the alpha parameter. Choose between 'norm' and 'flat'.
+        'mu',0.85,...                %mean of the prior distribution.
+        'std',0.20 ...              %standard deviation of the prior distribution.  
+        );
 
-par.gamma = 0.5;
+    par.beta = struct(...
+        'limits',[3 100],...      %range of the parameter space for beta
+        'N',41,...                %number of beta values. If this value is set to 1, then the first element of beta.limits would be the assumed beta and the beta parameter is not estimated.
+        'scale','log',...         %the linear or log spacing. Choose between 'lin' and 'log'.
+        'dist','norm',...         %prior distribution of the beta parameter. Choose between 'norm' and 'flat'.
+        'mu',30,...                %mean of the prior distribution.
+        'std',20 ...               %standard deviation of the prior distribution.
+        );
+    par.gamma = 1/9;
+end
 
 par.lambda = struct(...
     'limits',[0.01 0.10],...      %range of the parameter space for lambda
