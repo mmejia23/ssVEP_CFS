@@ -18,10 +18,13 @@
 % valores que den para el alpha (o usar los default para probar).
 %% Task 1: Psychophysics task to estimate alpha blending values:
 % Stereograms En orden: 1=A; 2=C; 3=H; 4=P; 5=L; 6=S; 7=T; 8=X; 9=Z;
-[data, expmnt] = ssvepCFS('NombreParticipante', 'pf', 1);
+[data, expmnt] = ssvepCFS('NombreParticipante', 'pf', 1, 'blocks', [2,2,2,2,2], 'n_trials', 30);
  
 %% Task 2: Knowing alpha blending values:
 % Stereograms En orden: 1=A; 2=C; 3=H; 4=P; 5=L; 6=S; 7=T; 8=X; 9=Z;
+% 2=Upright, 3=Inverted
 ssvepCFS('ManuelMejia', 'calculate_alpha');
-[data, expmnt] = ssvepCFS('NombreParticipante', 'alphas', [0.03, 0.3]);
+[data, expmnt] = ssvepCFS('NombreParticipante', 'alphas', [0.03, 0.3], 'blocks', [2,3,3,2,2,3], 'n_trials', 10);
+
+
 

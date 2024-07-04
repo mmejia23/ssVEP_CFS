@@ -119,6 +119,16 @@ if any(find(strcmp(varargin, 'calculate_alpha')))
 end
 
 % Blocks and trials
+if any(find(strcmp(varargin, 'blocks')))
+    expmnt.trigger = varargin{find(strcmp(varargin, 'blocks')) + 1};
+else
+    expmnt.trigger = 1;
+end
+if any(find(strcmp(varargin, 'blocks')))
+    expmnt.trigger = varargin{find(strcmp(varargin, 'blocks')) + 1};
+else
+    expmnt.trigger = 1;
+end
 if pf_estimation
     expmnt.stim_per_trial =     1;
     expmnt.trial_duration =     1/expmnt.baseline_hz;

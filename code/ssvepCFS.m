@@ -119,20 +119,34 @@ if any(find(strcmp(varargin, 'calculate_alpha')))
 end
 
 % Blocks and trials
+% 2=Upright, 3=Inverted
+if any(find(strcmp(varargin, 'blocks')))
+    expmnt.block_conds_order = varargin{find(strcmp(varargin, 'blocks')) + 1};
+else
+    if pf_estimation
+        expmnt.block_conds_order =  [2, 2, 2, 2, 2];
+    else
+        expmnt.block_conds_order =  [2, 3, 3, 2, 2, 3];
+    end
+end
+if any(find(strcmp(varargin, 'n_trials')))
+    expmnt.n_trials_per_block = varargin{find(strcmp(varargin, 'n_trials')) + 1};
+else
+    if pf_estimation
+        expmnt.n_trials_per_block = 30;
+    else
+        expmnt.n_trials_per_block = 10;
+    end
+end
 if pf_estimation
     expmnt.stim_per_trial =     1;
     expmnt.trial_duration =     1/expmnt.baseline_hz;
-    expmnt.n_trials_per_block = 30;
-    expmnt.block_conds_order =  [2, 2, 2, 2, 2]; % 2=Upright, 3=Inverted
-    % PF settings
     expmnt.constant_stimuli_method =    0;
     expmnt.pf_type_estimations =        5; % 5=familiarity 9 AFC
 else
     expmnt.odd_number =         10;
     expmnt.stim_per_trial =     expmnt.odd_frequency * expmnt.odd_number + 3;
     expmnt.trial_duration =     expmnt.stim_per_trial ./ expmnt.baseline_hz;
-    expmnt.n_trials_per_block = 10;
-    expmnt.block_conds_order =  [2, 3, 3, 2, 2, 3];
 end
 expmnt.simulate_responses = 1;
 expmnt.response_confidence = 0; % If 1, ask for response confidence 1-3
@@ -1406,7 +1420,7 @@ for block = 1:length(expmnt.block_conds_order)
 %                 [masks_alpha_blending] = calculate_alpha_blending_threshold(1, uml_pf.fam, 0.05);
                 
                 [masks_alpha_blending] = calculate_signal_threshold(uml_pf.fam, 0.15);
-                fprintf('...... Signal level: %.2f  |  Alpha mask level: .2f \n\n', ...
+                fprintf('...... Signal level: %.2f  |  Alpha mask level: %.2f \n\n', ...
                     1-masks_alpha_blending, masks_alpha_blending);
             end
         end
