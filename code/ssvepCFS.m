@@ -139,10 +139,8 @@ expmnt.response_confidence = 0; % If 1, ask for response confidence 1-3
 expmnt.trial_conds_order =  repmat([0,1], length(expmnt.block_conds_order), expmnt.n_trials_per_block./2);
 expmnt.identities =     {'BarackObama','RaulCastro','DiazCanel',...
                           'Beyonce','OmaraPortuondo','BlancaRosaBlanco',...
-                          'CamilaArteche','EdithMassola','LeoniTorres'};
-expmnt.identity_orders = repmat(expmnt.identities,...
-            length(expmnt.block_conds_order),...
-            ceil(expmnt.n_trials_per_block./length(expmnt.identities)));
+                          'CamilaArteche','EdithMassola','LeoniTorres',...
+                          'DonaldTrump', 'IrelaBravo'};
         
 %% Set initial vars for trigger box:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -599,9 +597,9 @@ responseItem_rel_pos = [-.32,-.30,-.32,-.30;    0,-.30,0,-.30;    .32,-.30,.32,-
                         -.32,   0,-.32,   0;    0,   0,0,   0;    .32,   0,.32,   0;...
                         -.32, .30,-.32, .30;    0, .30,0, .30;    .32, .30,.32, .30];
 responseItem_rel_pos = responseItem_rel_pos .* expmnt.mask_width;
-responseItem_pos_all_left = repmat(responseItem_box_left, 9, 1);
+responseItem_pos_all_left = repmat(responseItem_box_left, size(responseItem_rel_pos,1), 1);
 responseItem_pos_all_left = responseItem_pos_all_left + responseItem_rel_pos;
-responseItem_pos_all_right = repmat(responseItem_box_right, 9, 1);
+responseItem_pos_all_right = repmat(responseItem_box_right, size(responseItem_rel_pos,1), 1);
 responseItem_pos_all_right = responseItem_pos_all_right + responseItem_rel_pos;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -642,6 +640,96 @@ for j = 1:length(expmnt.identities)
 end
 clearvars temp;
 
+% Selection screen:
+img_sx = 250; 
+img_sy = 250;
+images_per_screen = length(idx_response_faces);
+images_selected = zeros(1, length(idx_response_faces));
+response_given = 0;
+exit_experiment = 0;
+down_click = 0;
+KbQueueCreate([], responseKeys);
+KbQueueStart;
+KbQueueFlush();
+Screen('TextSize', w, expmnt.block_font_size+2);
+while response_given == 0
+    images_box = nan(4, length(idx_response_faces));
+    for index = 1:length(idx_response_faces)
+        [image_box, center] = convert_screen_positions(0, index, [img_sx, img_sy],...
+            [images_per_screen], [screenXpixels, screenYpixels]);
+        images_box(:,index) = CenterRectOnPointd(image_box.*.90, center(1), center(2));
+        clearvars temp;
+    end
+    Screen('DrawTextures', w, [loadedStim(idx_response_faces).theTexture],...
+        [], images_box, 0, [], [1-images_selected.*.75]);
+    for index = 1:length(idx_response_faces)
+        DrawFormattedText(w, expmnt.identities{index}, 'center', images_box(4,index), [1 1 1], [], [], [], [], [], images_box(:,index)');
+    end
+    DrawFormattedText(w, num2str(sum(images_selected)), screenXpixels-expmnt.font_size*2.5, expmnt.font_size*3, [.8 .8 .8]);
+    Screen('Flip', w);
+    
+    [mx, my, whichButton] = GetMouse(w);
+    if whichButton(1) == 1
+        for j = 1:size(images_box, 2)
+            if IsInRect(mx, my, images_box(:,j))
+                image_index = j;
+                image_down = image_index;
+                down_click = 1;
+            end
+        end
+%         [image_index] = convert_screen_positions(2, [mx, my], [img_sx, img_sy], [images_per_row, images_per_screen], [screenXpixels, screenYpixels]);
+%         image_index = (current_page-1)*images_per_screen + image_index;
+        WaitSecs(0.01);
+    elseif whichButton(1) == 0 && down_click == 1
+        for j = 1:size(images_box, 2)
+            if IsInRect(mx, my, images_box(:,j))
+                image_index = j;
+            end
+        end
+%         [image_index] = convert_screen_positions(2, [mx, my], [img_sx, img_sy], [images_per_row, images_per_screen], [screenXpixels, screenYpixels]);
+%         image_index = (current_page-1)*images_per_screen + image_index;
+        if image_down == image_index
+           if images_selected(image_index) == 0
+                images_selected(image_index) = 1;
+            elseif images_selected(image_index) == 1
+                images_selected(image_index) = 0;
+           end
+        end
+        image_index = 0;
+        down_click = 0;
+        WaitSecs(0.01);
+    end
+
+    % Collect keyboard response:
+    [pressed, firstPress] = KbQueueCheck;
+    if pressed
+        if firstPress(escapeKey) && sum(images_selected) == 9
+            exit_experiment = 1;
+        end
+    end
+    if exit_experiment == 1
+        expmnt.identities = expmnt.identities(logical(images_selected));
+%         not_selected_images = list_of_images(~logical(images_selected));
+        response_given = 1;
+    end
+end
+Screen('Flip', w);
+KbWait;
+Screen('TextSize', w, expmnt.block_font_size);
+
+% Select images for response screen:
+idx_response_faces = [];
+for j = 1:length(expmnt.identities)
+    temp = [];
+    temp = find(strcmp({images_str.name}, expmnt.identities{j}) & strcmp({images_str.cond}, 'familiar'));
+    idx_response_faces = [idx_response_faces, temp(1)];
+end
+expmnt.identity_orders = repmat(expmnt.identities,...
+        length(expmnt.block_conds_order),...
+        ceil(expmnt.n_trials_per_block./length(expmnt.identities)));
+expmnt.identity_orders = expmnt.identity_orders(1:length(expmnt.block_conds_order), 1:expmnt.n_trials_per_block);
+clearvars temp;
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create and prepare masks:
 %__________________________________________________________________________
@@ -652,7 +740,7 @@ temp =              Expand(1:expmnt.num_masks, mask_framerate, 1);
 frames_masks =      temp(1:n_frames_per_trial);
 clearvars temp;
 masks_raw = make_mondrian_masks(expmnt.mask_width, expmnt.mask_height, expmnt.num_masks, 2, 2);
-% Same luminance of masks and targets. Control contrast:
+% Same luminance of masks and targets.   ontrol contrast:
 masks = lumMatch(masks_raw, [], [expmnt.img_lum_mean, expmnt.cfs_masks_contrast_sd]); 
 % Convert masks into textures:
 for i = 1:length(masks)
@@ -1085,7 +1173,7 @@ for block = 1:length(expmnt.block_conds_order)
                     response_given = 1;
                 end
             end
-            if pressed && expmnt.simulate_responses==0
+            if pressed
                 if firstPress(key1)
                     trial_response = 1;
                     trial_response_time = firstPress(key1);
