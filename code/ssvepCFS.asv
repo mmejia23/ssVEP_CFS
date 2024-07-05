@@ -48,6 +48,8 @@ expmnt.PTB_SkipSyncTexts_config =   0;
 expmnt.BeampositionQueryWorkaround = 0;
 expmnt.set_custom_screen_size =     0;
 
+
+
 %% Get vars from function call:
 % User defines if this run is for estimation of Psychometric function (pf)
 % or for the main task:
@@ -97,7 +99,7 @@ if pf_estimation
     filename = sprintf(filename_structure, subject, 'pf');
 else
     filename = sprintf(filename_structure, subject, 'ssvepCFS');
-    pf_filename = sprintf([filename_structure, '_beh.mat'], subject, 'pf');
+    pf_filename = sprintf(filename_structure, subject, 'ssvepCFS');
 end
 if exist([filename, '_beh.mat'], 'file')
     % If there are previous files, rename them to separate them:
@@ -108,37 +110,31 @@ if exist([filename, '_beh.mat'], 'file')
 end
 
 %% Estimate alpha blending values for CFS masks
-% Target performance (percent correct) in each CFS condition:
-expmnt.perf1_estimation = 0.90;
-expmnt.perf2_estimation = 0.15;
 % User defined alpha blending values for CFS masks:
 if any(find(strcmp(varargin, 'alphas')))
     expmnt.supp1__mask_alpha =  varargin{find(strcmp(varargin, 'alphas')) + 1}(1);
     expmnt.supp2__mask_alpha =  varargin{find(strcmp(varargin, 'alphas')) + 1}(2);
 % Only if there are not user defined alphas, try to estimate them from UML:
-elseif pf_estimation == 0 && exist(pf_filename, 'file')
+ifelse pf_estimation == 0 && exist(pf_filename, 'file')
     load(pf_filename, 'uml_pf');
-    [expmnt.supp1__mask_alpha] = calculate_signal_threshold(uml_pf.fam, ...
-        expmnt.perf1_estimation);
-    [expmnt.supp2__mask_alpha] = calculate_signal_threshold(uml_pf.fam, ...
-        expmnt.perf2_estimation);
-    if expmnt.supp1__mask_alpha < 0.03
+    [expmnt.supp1__mask_alpha] = calculate_signal_threshold(uml_pf.fam, 0.90);
+    [masks_alpha_blending2] = calculate_signal_threshold(uml_pf.fam, 0.15);
+    if expmnt.supp2__mask_alpha < 0.03
         fprintf('\nEstimated alpha for visible condition was too low, correcting into = 0.03 !! \n');
-        expmnt.supp1__mask_alpha = 0.03;
+        expmnt.supp2__mask_alpha = 0.03;
     end
-    if expmnt.supp2__mask_alpha > 1
+    if expmnt.supp1__mask_alpha > 1
         fprintf('\nEstimated alpha for invisible condition was too high, correcting into = 1 !! \n\n');
-        expmnt.supp2__mask_alpha = 1;
+        expmnt.supp1__mask_alpha = 1;
     end
+    fprintf(' .......... Set alphas as: [ %.02f, %.02f ] .......\n',...
+        expmnt.supp1__mask_alpha, masks_alpha_blending2);
+    return;
 % Then, if everything fails, use averages from previous studies:
 else
     expmnt.supp1__mask_alpha =  0.03;
     expmnt.supp2__mask_alpha =  0.32;
-    fprintf('\nWarning !! Using default CFS levels values... \n\n');
 end
-fprintf(' .......... Set alphas as: [ %.02f, %.02f ] .......\n',...
-    expmnt.supp1__mask_alpha, expmnt.supp2__mask_alpha);
-return;
 % Use only the part of this function that estimates alpha blending values
 % for CFS masks, and prints them on the command window:
 if any(find(strcmp(varargin, 'calculate_alpha')))
