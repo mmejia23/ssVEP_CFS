@@ -68,16 +68,15 @@ if any(find(strcmp(varargin, 'triggers')))
 else
     expmnt.trigger = 1;
 end
-
-% Blocks and trials
-% 2=Upright, 3=Inverted
+%% Blocks and trials
+% 1=Upright, 2=Inverted
 if any(find(strcmp(varargin, 'blocks')))
     expmnt.block_conds_order = varargin{find(strcmp(varargin, 'blocks')) + 1};
 else
     if pf_estimation
-        expmnt.block_conds_order =  [2, 2, 2, 2, 2];
+        expmnt.block_conds_order =  [1, 1, 1, 1, 1];
     else
-        expmnt.block_conds_order =  [2, 3, 3, 2, 2, 3];
+        expmnt.block_conds_order =  [1, 2, 2, 1, 1, 2];
     end
 end
 if any(find(strcmp(varargin, 'n_trials')))
@@ -978,17 +977,26 @@ for block = 1:length(expmnt.block_conds_order)
                 this_trial__images_cond = images_str(frames_baseline).cond;
                 this_trial__stim_orientation = 0;
             case 1
-                % Baseline: houses; oddball: unfamiliar faces
-                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_houses))
-                    temp = [temp, Shuffle(idx_unfamiliar_houses)];
+                % Baseline: unfamiliar faces; oddball: familiar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
+                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
                 end
                 % This is a vector with indices for each face to be presented:
                 frames_baseline = temp(1:length(frames_baseline));
                 clearvars temp;
-                temp = Shuffle(idx_unfamiliar_faces);
-                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__identity = expmnt.identity_orders{block, trial};
+                idx_correct_faces = find(strcmp({images_str.name}, this_trial__identity) & strcmp({images_str.cond}, 'familiar'));
+                temp = [];
+                for tmp_i = 1:(ceil(length(idx_oddball)/length(idx_correct_faces)))
+                    temp = [temp, Shuffle(idx_correct_faces)];
+                end
+                if pf_estimation == 1
+                    temp = Shuffle(idx_correct_faces);
+                    frames_baseline = temp(1);
+                else
+                    frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                end
                 this_trial__stim_orientation = 0;
-                this_trial__identity = 'none';
             case 2
                 % Baseline: unfamiliar faces; oddball: familiar faces
                 for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
@@ -1009,28 +1017,19 @@ for block = 1:length(expmnt.block_conds_order)
                 else
                     frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
                 end
-                this_trial__stim_orientation = 0;
+                this_trial__stim_orientation = 180;
             case 3
-                % Baseline: unfamiliar faces; oddball: familiar faces
-                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
-                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
+                % Baseline: houses; oddball: unfamiliar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_houses))
+                    temp = [temp, Shuffle(idx_unfamiliar_houses)];
                 end
                 % This is a vector with indices for each face to be presented:
                 frames_baseline = temp(1:length(frames_baseline));
                 clearvars temp;
-                this_trial__identity = expmnt.identity_orders{block, trial};
-                idx_correct_faces = find(strcmp({images_str.name}, this_trial__identity) & strcmp({images_str.cond}, 'familiar'));
-                temp = [];
-                for tmp_i = 1:(ceil(length(idx_oddball)/length(idx_correct_faces)))
-                    temp = [temp, Shuffle(idx_correct_faces)];
-                end
-                if pf_estimation == 1
-                    temp = Shuffle(idx_correct_faces);
-                    frames_baseline = temp(1);
-                else
-                    frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
-                end
-                this_trial__stim_orientation = 180;
+                temp = Shuffle(idx_unfamiliar_faces);
+                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__stim_orientation = 0;
+                this_trial__identity = 'none';
         end
         clearvars temp;
 
