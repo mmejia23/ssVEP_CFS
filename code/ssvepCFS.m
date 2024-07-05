@@ -27,6 +27,9 @@ function [data, expmnt] = ssvepCFS(subject, varargin)
 % 
 % 
 % Pending: -------------------------------------------------------------
+% [ ] Change numbering of conditions to 1 and 2. upright vs inverted faces
+% [ ] Set face selection to be saved and reused (or set by calling func)
+% [ ] Add more familiar faces.
 % [ ] Code to create text boxes with instructions.
 % [ ] Test thoroughly. 
 
