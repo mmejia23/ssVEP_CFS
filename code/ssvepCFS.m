@@ -169,8 +169,6 @@ else
     expmnt.fade_out_time =  2;
 end
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
-expmnt.Fixation_time =  [2, 1]; % Minimum 2 secs, rand number between 2-3
-expmnt.ITI =            [1, 2];
 
 % Suppressions: based on averages of pupillometry study
 % expmnt.default_alpha_masks_supp1   = 0.04;
@@ -181,10 +179,14 @@ if pf_estimation
     expmnt.trial_duration =     1/expmnt.baseline_hz;
     expmnt.constant_stimuli_method =    0;
     expmnt.pf_type_estimations =        5; % 5=familiarity 9 AFC
+    expmnt.Fixation_time =  [1, 1]; % Minimum 1 secs, rand number between 1-2
+    expmnt.ITI =            [1, 1];
 else
     expmnt.odd_number =         10;
     expmnt.stim_per_trial =     expmnt.odd_frequency * expmnt.odd_number + 3;
     expmnt.trial_duration =     expmnt.stim_per_trial ./ expmnt.baseline_hz;
+    expmnt.Fixation_time =  [2, 1]; % Minimum 2 secs, rand number between 2-3
+    expmnt.ITI =            [1, 2];
 end
 expmnt.simulate_responses = 1;
 expmnt.response_confidence = 0; % If 1, ask for response confidence 1-3
