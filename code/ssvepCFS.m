@@ -137,7 +137,6 @@ else
 end
 fprintf(' .......... Set alphas as: [ %.02f, %.02f ] .......\n',...
     expmnt.supp1__mask_alpha, expmnt.supp2__mask_alpha);
-return;
 % Use only the part of this function that estimates alpha blending values
 % for CFS masks, and prints them on the command window:
 if any(find(strcmp(varargin, 'calculate_alpha')))
@@ -1343,10 +1342,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam.swpts(end, 3), uml_pf.fam.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam.psycfun(x,...
                         uml_pf.fam.phi(end,1), uml_pf.fam.phi(end,2),...
                         uml_pf.fam.phi(end,3), uml_pf.fam.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam = pf_trial_count_fam + 1;
                 pf_total_count_fam = pf_total_count_fam + 1;
@@ -1361,10 +1361,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.face.swpts(end, 1), uml_pf.face.swpts(end, 2), uml_pf.face.swpts(end, 3), uml_pf.face.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.face.psycfun(x,...
                         uml_pf.face.phi(end,1), uml_pf.face.phi(end,2),...
                         uml_pf.face.phi(end,3), uml_pf.face.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0.50, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0.50, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_face = pf_trial_count_face + 1;
                 pf_total_count_face = pf_total_count_face + 1;
@@ -1379,10 +1380,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam_abrupt.swpts(end, 1), uml_pf.fam_abrupt.swpts(end, 2), uml_pf.fam_abrupt.swpts(end, 3), uml_pf.fam_abrupt.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam_abrupt.psycfun(x,...
                         uml_pf.fam_abrupt.phi(end,1), uml_pf.fam_abrupt.phi(end,2),...
                         uml_pf.fam_abrupt.phi(end,3), uml_pf.fam_abrupt.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam_abrupt = pf_trial_count_fam_abrupt + 1;
                 pf_total_count_fam_abrupt = pf_total_count_fam_abrupt + 1;
@@ -1397,10 +1399,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam_faded.swpts(end, 1), uml_pf.fam_faded.swpts(end, 2), uml_pf.fam_faded.swpts(end, 3), uml_pf.fam_faded.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam_faded.psycfun(x,...
                         uml_pf.fam_faded.phi(end,1), uml_pf.fam_faded.phi(end,2),...
                         uml_pf.fam_faded.phi(end,3), uml_pf.fam_faded.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam_faded = pf_trial_count_fam_faded + 1;
                 pf_total_count_fam_faded = pf_total_count_fam_faded + 1;
@@ -1418,10 +1421,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam.swpts(end, 3), uml_pf.fam.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam.psycfun(x,...
                         uml_pf.fam.phi(end,1), uml_pf.fam.phi(end,2),...
                         uml_pf.fam.phi(end,3), uml_pf.fam.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam = pf_trial_count_fam + 1;
                 pf_total_count_fam = pf_total_count_fam + 1;
