@@ -48,8 +48,6 @@ expmnt.PTB_SkipSyncTexts_config =   0;
 expmnt.BeampositionQueryWorkaround = 0;
 expmnt.set_custom_screen_size =     0;
 
-
-
 %% Get vars from function call:
 % User defines if this run is for estimation of Psychometric function (pf)
 % or for the main task:
@@ -70,16 +68,15 @@ if any(find(strcmp(varargin, 'triggers')))
 else
     expmnt.trigger = 1;
 end
-
-% Blocks and trials
-% 2=Upright, 3=Inverted
+%% Blocks and trials
+% 1=Upright, 2=Inverted
 if any(find(strcmp(varargin, 'blocks')))
     expmnt.block_conds_order = varargin{find(strcmp(varargin, 'blocks')) + 1};
 else
     if pf_estimation
-        expmnt.block_conds_order =  [2, 2, 2, 2, 2];
+        expmnt.block_conds_order =  [1, 1, 1, 1, 1];
     else
-        expmnt.block_conds_order =  [2, 3, 3, 2, 2, 3];
+        expmnt.block_conds_order =  [1, 2, 2, 1, 1, 2];
     end
 end
 if any(find(strcmp(varargin, 'n_trials')))
@@ -99,7 +96,7 @@ if pf_estimation
     filename = sprintf(filename_structure, subject, 'pf');
 else
     filename = sprintf(filename_structure, subject, 'ssvepCFS');
-    pf_filename = sprintf(filename_structure, subject, 'ssvepCFS');
+    pf_filename = sprintf([filename_structure, '_beh.mat'], subject, 'pf');
 end
 if exist([filename, '_beh.mat'], 'file')
     % If there are previous files, rename them to separate them:
@@ -110,31 +107,39 @@ if exist([filename, '_beh.mat'], 'file')
 end
 
 %% Estimate alpha blending values for CFS masks
+% Target performance (percent correct) in each CFS condition:
+expmnt.perf1_estimation = 0.90;
+expmnt.perf2_estimation = 0.15;
 % User defined alpha blending values for CFS masks:
 if any(find(strcmp(varargin, 'alphas')))
+    expmnt.supp__values =       'given by user';
     expmnt.supp1__mask_alpha =  varargin{find(strcmp(varargin, 'alphas')) + 1}(1);
     expmnt.supp2__mask_alpha =  varargin{find(strcmp(varargin, 'alphas')) + 1}(2);
 % Only if there are not user defined alphas, try to estimate them from UML:
-ifelse pf_estimation == 0 && exist(pf_filename, 'file')
+elseif pf_estimation == 0 && exist(pf_filename, 'file')
+    expmnt.supp__values =       'estimated from UML file';
     load(pf_filename, 'uml_pf');
-    [expmnt.supp1__mask_alpha] = calculate_signal_threshold(uml_pf.fam, 0.90);
-    [masks_alpha_blending2] = calculate_signal_threshold(uml_pf.fam, 0.15);
-    if expmnt.supp2__mask_alpha < 0.03
+    [expmnt.supp1__mask_alpha] = calculate_signal_threshold(uml_pf.fam, ...
+        expmnt.perf1_estimation);
+    [expmnt.supp2__mask_alpha] = calculate_signal_threshold(uml_pf.fam, ...
+        expmnt.perf2_estimation);
+    if expmnt.supp1__mask_alpha < 0.03
         fprintf('\nEstimated alpha for visible condition was too low, correcting into = 0.03 !! \n');
-        expmnt.supp2__mask_alpha = 0.03;
+        expmnt.supp1__mask_alpha = 0.03;
     end
-    if expmnt.supp1__mask_alpha > 1
+    if expmnt.supp2__mask_alpha > 1
         fprintf('\nEstimated alpha for invisible condition was too high, correcting into = 1 !! \n\n');
-        expmnt.supp1__mask_alpha = 1;
+        expmnt.supp2__mask_alpha = 1;
     end
-    fprintf(' .......... Set alphas as: [ %.02f, %.02f ] .......\n',...
-        expmnt.supp1__mask_alpha, masks_alpha_blending2);
-    return;
 % Then, if everything fails, use averages from previous studies:
 else
+    expmnt.supp__values =       'Used the defaults (average from previous studi';
     expmnt.supp1__mask_alpha =  0.03;
     expmnt.supp2__mask_alpha =  0.32;
+    fprintf('\nWarning !! Using default CFS levels values... \n\n');
 end
+fprintf(' .......... Set alphas as: [ %.02f, %.02f ] .......\n',...
+    expmnt.supp1__mask_alpha, expmnt.supp2__mask_alpha);
 % Use only the part of this function that estimates alpha blending values
 % for CFS masks, and prints them on the command window:
 if any(find(strcmp(varargin, 'calculate_alpha')))
@@ -167,8 +172,6 @@ else
     expmnt.fade_out_time =  2;
 end
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
-expmnt.Fixation_time =  [2, 1]; % Minimum 2 secs, rand number between 2-3
-expmnt.ITI =            [1, 2];
 
 % Suppressions: based on averages of pupillometry study
 % expmnt.default_alpha_masks_supp1   = 0.04;
@@ -179,10 +182,14 @@ if pf_estimation
     expmnt.trial_duration =     1/expmnt.baseline_hz;
     expmnt.constant_stimuli_method =    0;
     expmnt.pf_type_estimations =        5; % 5=familiarity 9 AFC
+    expmnt.Fixation_time =  [1, 1]; % Minimum 1 secs, rand number between 1-2
+    expmnt.ITI =            [1, 1];
 else
     expmnt.odd_number =         10;
     expmnt.stim_per_trial =     expmnt.odd_frequency * expmnt.odd_number + 3;
     expmnt.trial_duration =     expmnt.stim_per_trial ./ expmnt.baseline_hz;
+    expmnt.Fixation_time =  [2, 1]; % Minimum 2 secs, rand number between 2-3
+    expmnt.ITI =            [1, 2];
 end
 expmnt.simulate_responses = 1;
 expmnt.response_confidence = 0; % If 1, ask for response confidence 1-3
@@ -974,17 +981,26 @@ for block = 1:length(expmnt.block_conds_order)
                 this_trial__images_cond = images_str(frames_baseline).cond;
                 this_trial__stim_orientation = 0;
             case 1
-                % Baseline: houses; oddball: unfamiliar faces
-                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_houses))
-                    temp = [temp, Shuffle(idx_unfamiliar_houses)];
+                % Baseline: unfamiliar faces; oddball: familiar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
+                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
                 end
                 % This is a vector with indices for each face to be presented:
                 frames_baseline = temp(1:length(frames_baseline));
                 clearvars temp;
-                temp = Shuffle(idx_unfamiliar_faces);
-                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__identity = expmnt.identity_orders{block, trial};
+                idx_correct_faces = find(strcmp({images_str.name}, this_trial__identity) & strcmp({images_str.cond}, 'familiar'));
+                temp = [];
+                for tmp_i = 1:(ceil(length(idx_oddball)/length(idx_correct_faces)))
+                    temp = [temp, Shuffle(idx_correct_faces)];
+                end
+                if pf_estimation == 1
+                    temp = Shuffle(idx_correct_faces);
+                    frames_baseline = temp(1);
+                else
+                    frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                end
                 this_trial__stim_orientation = 0;
-                this_trial__identity = 'none';
             case 2
                 % Baseline: unfamiliar faces; oddball: familiar faces
                 for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
@@ -1005,28 +1021,19 @@ for block = 1:length(expmnt.block_conds_order)
                 else
                     frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
                 end
-                this_trial__stim_orientation = 0;
+                this_trial__stim_orientation = 180;
             case 3
-                % Baseline: unfamiliar faces; oddball: familiar faces
-                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_faces))
-                    temp = [temp, Shuffle(idx_unfamiliar_faces)];
+                % Baseline: houses; oddball: unfamiliar faces
+                for i = 1:ceil(length(frames_baseline)/length(unfamiliar_houses))
+                    temp = [temp, Shuffle(idx_unfamiliar_houses)];
                 end
                 % This is a vector with indices for each face to be presented:
                 frames_baseline = temp(1:length(frames_baseline));
                 clearvars temp;
-                this_trial__identity = expmnt.identity_orders{block, trial};
-                idx_correct_faces = find(strcmp({images_str.name}, this_trial__identity) & strcmp({images_str.cond}, 'familiar'));
-                temp = [];
-                for tmp_i = 1:(ceil(length(idx_oddball)/length(idx_correct_faces)))
-                    temp = [temp, Shuffle(idx_correct_faces)];
-                end
-                if pf_estimation == 1
-                    temp = Shuffle(idx_correct_faces);
-                    frames_baseline = temp(1);
-                else
-                    frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
-                end
-                this_trial__stim_orientation = 180;
+                temp = Shuffle(idx_unfamiliar_faces);
+                frames_baseline(idx_oddball) = temp(1:length(frames_baseline(idx_oddball)));
+                this_trial__stim_orientation = 0;
+                this_trial__identity = 'none';
         end
         clearvars temp;
 
@@ -1340,10 +1347,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam.swpts(end, 3), uml_pf.fam.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam.psycfun(x,...
                         uml_pf.fam.phi(end,1), uml_pf.fam.phi(end,2),...
                         uml_pf.fam.phi(end,3), uml_pf.fam.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam = pf_trial_count_fam + 1;
                 pf_total_count_fam = pf_total_count_fam + 1;
@@ -1358,10 +1366,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.face.swpts(end, 1), uml_pf.face.swpts(end, 2), uml_pf.face.swpts(end, 3), uml_pf.face.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.face.psycfun(x,...
                         uml_pf.face.phi(end,1), uml_pf.face.phi(end,2),...
                         uml_pf.face.phi(end,3), uml_pf.face.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0.50, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0.50, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_face = pf_trial_count_face + 1;
                 pf_total_count_face = pf_total_count_face + 1;
@@ -1376,10 +1385,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam_abrupt.swpts(end, 1), uml_pf.fam_abrupt.swpts(end, 2), uml_pf.fam_abrupt.swpts(end, 3), uml_pf.fam_abrupt.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam_abrupt.psycfun(x,...
                         uml_pf.fam_abrupt.phi(end,1), uml_pf.fam_abrupt.phi(end,2),...
                         uml_pf.fam_abrupt.phi(end,3), uml_pf.fam_abrupt.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam_abrupt = pf_trial_count_fam_abrupt + 1;
                 pf_total_count_fam_abrupt = pf_total_count_fam_abrupt + 1;
@@ -1394,10 +1404,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam_faded.swpts(end, 1), uml_pf.fam_faded.swpts(end, 2), uml_pf.fam_faded.swpts(end, 3), uml_pf.fam_faded.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam_faded.psycfun(x,...
                         uml_pf.fam_faded.phi(end,1), uml_pf.fam_faded.phi(end,2),...
                         uml_pf.fam_faded.phi(end,3), uml_pf.fam_faded.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam_faded = pf_trial_count_fam_faded + 1;
                 pf_total_count_fam_faded = pf_total_count_fam_faded + 1;
@@ -1415,10 +1426,11 @@ for block = 1:length(expmnt.block_conds_order)
                         uml_pf.fam.swpts(end, 3), uml_pf.fam.swpts(end, 4));
                 if expmnt.debug_pt == 1
                     x = 0:.01:1;
+                    close;
                     figure; plot(x, uml_pf.fam.psycfun(x,...
                         uml_pf.fam.phi(end,1), uml_pf.fam.phi(end,2),...
                         uml_pf.fam.phi(end,3), uml_pf.fam.phi(end,4))); % Current phi
-                    xlim([0, 1]); ylim([0, 1]); title('Current estimation (phi)');
+                    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)', ' Trial: ', trial_count]);
                 end
                 pf_trial_count_fam = pf_trial_count_fam + 1;
                 pf_total_count_fam = pf_total_count_fam + 1;

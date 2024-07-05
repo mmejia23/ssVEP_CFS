@@ -112,10 +112,12 @@ expmnt.perf1_estimation = 0.90;
 expmnt.perf2_estimation = 0.15;
 % User defined alpha blending values for CFS masks:
 if any(find(strcmp(varargin, 'alphas')))
+    expmnt.supp__values =       'given by user';
     expmnt.supp1__mask_alpha =  varargin{find(strcmp(varargin, 'alphas')) + 1}(1);
     expmnt.supp2__mask_alpha =  varargin{find(strcmp(varargin, 'alphas')) + 1}(2);
 % Only if there are not user defined alphas, try to estimate them from UML:
 elseif pf_estimation == 0 && exist(pf_filename, 'file')
+    expmnt.supp__values =       'estimated from UML file';
     load(pf_filename, 'uml_pf');
     [expmnt.supp1__mask_alpha] = calculate_signal_threshold(uml_pf.fam, ...
         expmnt.perf1_estimation);
@@ -131,6 +133,7 @@ elseif pf_estimation == 0 && exist(pf_filename, 'file')
     end
 % Then, if everything fails, use averages from previous studies:
 else
+    expmnt.supp__values =       'Used the defaults (average from previous study)';
     expmnt.supp1__mask_alpha =  0.03;
     expmnt.supp2__mask_alpha =  0.32;
     fprintf('\nWarning !! Using default CFS levels values... \n\n');
