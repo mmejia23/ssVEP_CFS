@@ -44,7 +44,7 @@ addpath('SHINEtoolbox/');
 addpath('UML_ver2.2/');
 addpath('convert_screen_sizes');
 expmnt.savescreen =                 0;
-expmnt.PTB_SkipSyncTexts_config =   0;
+expmnt.PTB_SkipSyncTexts_config =   1;
 expmnt.BeampositionQueryWorkaround = 0;
 expmnt.set_custom_screen_size =     0;
 
@@ -300,10 +300,10 @@ expmnt.fix_color = [1,1,1];
 expmnt.fix_size = 10;
 % Line width for fixation cross:
 fix_lineWidth = 2;
-expmnt.font_size = 15;
+expmnt.font_size = round(expmnt.mask_width./9);
+expmnt.block_font_size = round(expmnt.mask_width./12);%15;
 which_stereogram    = expmnt.stereogram_for_exp;
 pos_first_text_line = 0.40;
-expmnt.block_font_size = 15;
     
 %% Prepare stimuli
 %__________________________________________________________________________
@@ -424,7 +424,7 @@ stim_center_deg =   [0, 0]; 		% The center of the stimuli matches the center of 
         screen_size_px, expmnt.screen_distance_mm, expmnt.screen_size_mm, stim_center_deg);
     
 % Response screen items:
-expmnt.responseItem_size_deg =     expmnt.mask_size_deg./4;
+expmnt.responseItem_size_deg =     expmnt.mask_size_deg./3;
 [responseItem_size_px, responseItem_size_mm, responseItem_center_px] =...
 		deg2px2(expmnt.responseItem_size_deg,...
         screen_size_px, expmnt.screen_distance_mm, expmnt.screen_size_mm, stim_center_deg);
@@ -445,12 +445,15 @@ expmnt.stimuli_height =             round(stim_size_px(2));
 expmnt.stimuli_width_mm =           round(stim_size_mm(1));
 expmnt.stimuli_height_mm =          round(stim_size_mm(2));
 
-expmnt.responseItem_width =         round(responseItem_size_px(1));
-expmnt.responseItem_height =        round(responseItem_size_px(2));
-expmnt.responseItem_width_mm =      round(responseItem_size_mm(1));
-expmnt.responseItem_height_mm =     round(responseItem_size_mm(2));
+expmnt.responseItem_width =         round(responseItem_size_px(1).*.9);
+expmnt.responseItem_height =        round(responseItem_size_px(2).*.9);
+expmnt.responseItem_width_mm =      round(responseItem_size_mm(1).*.9);
+expmnt.responseItem_height_mm =     round(responseItem_size_mm(2).*.9);
 
 expmnt.x_displacement =         round(expmnt.mask_width/2 + expmnt.vergence_bar_width*4);
+
+expmnt.font_size = round(expmnt.mask_width./9);
+expmnt.block_font_size = round(expmnt.mask_width./13);%15;
 
 % Boxes to position: target, CFS masks, vergence bars, and response items:
 target_box =            [0 0 expmnt.stimuli_width expmnt.stimuli_height]; 
@@ -635,9 +638,9 @@ responseItem_box_right = responseItem_box + ...
     expmnt.x_displacement, expmnt.y_displacement];
 % 9 response options, in a 3x3 grid: (screen origin is top-left)
 % Change these to have other distributions of response options
-responseItem_rel_pos = [-.32,-.30,-.32,-.30;    0,-.30,0,-.30;    .32,-.30,.32,-.30; ...
+responseItem_rel_pos = [-.32,-.40,-.32,-.40;    0,-.40,0,-.40;    .32,-.40,.32,-.40; ...
                         -.32,   0,-.32,   0;    0,   0,0,   0;    .32,   0,.32,   0;...
-                        -.32, .30,-.32, .30;    0, .30,0, .30;    .32, .30,.32, .30];
+                        -.32, .40,-.32, .40;    0, .40,0, .40;    .32, .40,.32, .40];
 responseItem_rel_pos = responseItem_rel_pos .* expmnt.mask_width;
 responseItem_pos_all_left = repmat(responseItem_box_left, size(responseItem_rel_pos,1), 1);
 responseItem_pos_all_left = responseItem_pos_all_left + responseItem_rel_pos;
@@ -683,7 +686,7 @@ down_click = 0;
 KbQueueCreate([], responseKeys);
 KbQueueStart;
 KbQueueFlush();
-Screen('TextSize', w, expmnt.block_font_size+2);
+Screen('TextSize', w, expmnt.block_font_size+4);
 while response_given == 0
     images_box = nan(4, length(idx_response_faces));
     for index = 1:length(idx_response_faces)
@@ -1167,16 +1170,16 @@ for block = 1:length(expmnt.block_conds_order)
         end
         
         % Positions of identities in response screen:
-        Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, vergence_bars_orientations, [], []);
+        Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions(:,1:4), vergence_bars_orientations(:,1:4), [], []);
         Screen('DrawTextures', w, [loadedStim(idx_response_faces).theTexture], [],...
-                responseItem_pos_all_left(1:length(idx_response_faces),:)', this_trial__stim_orientation, [], 1);
+                responseItem_pos_all_left(1:length(idx_response_faces),:)', 0, [], 1);
         Screen('DrawTextures', w, [loadedStim(idx_response_faces).theTexture], [],...
-                responseItem_pos_all_right(1:length(idx_response_faces),:)', this_trial__stim_orientation, [], 1);
+                responseItem_pos_all_right(1:length(idx_response_faces),:)', 0, [], 1);
         for item = 1:length(idx_response_faces)
             DrawFormattedText(w, num2str(item), 'center', 'center', [1 1 1], [], [], [], [], [],...
-                responseItem_pos_all_left(item,:)-[responseItem_size_px(1)/2, 0, responseItem_size_px(1)/2, 0]);
+                responseItem_pos_all_left(item,:)+[0, responseItem_size_px(2)/2, 0, responseItem_size_px(2)/2]);
             DrawFormattedText(w, num2str(item), 'center', 'center', [1 1 1], [], [], [], [], [],...
-                responseItem_pos_all_right(item,:)-[responseItem_size_px(1)/2, 0, responseItem_size_px(1)/2, 0]);
+                responseItem_pos_all_right(item,:)+[0, responseItem_size_px(2)/2, 0, responseItem_size_px(2)/2]);
         end
         Screen('Flip', w);
         %% End of masks: trigger box
@@ -1246,11 +1249,11 @@ for block = 1:length(expmnt.block_conds_order)
                     trial_response_time = firstPress(key9);
                     response_given = 1;
                 end
-                if firstPress(spaceKey)
-                    trial_response = [];
-                    trial_response_time = [];
-                    response_given = 1;
-                end
+%                 if firstPress(spaceKey)
+%                     trial_response = [];
+%                     trial_response_time = [];
+%                     response_given = 1;
+%                 end
                 if firstPress(escapeKey)
                     response_correct = 0;
                     trial_response = [];
