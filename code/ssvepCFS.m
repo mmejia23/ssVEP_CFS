@@ -62,6 +62,12 @@ if any(find(strcmp(varargin, 'debug')))
 else
     expmnt.debug_pt = 0;
 end
+% If we want to simulate responses to run a test of the code:
+if any(find(strcmp(varargin, 'sim')))
+    expmnt.simulate_responses = varargin{find(strcmp(varargin, 'sim')) + 1};
+else
+    expmnt.simulate_responses = 0;
+end
 % User defines if BrainVision's Triggerbox is connected and sends triggers:
 if any(find(strcmp(varargin, 'triggers')))
     expmnt.trigger = varargin{find(strcmp(varargin, 'triggers')) + 1};
@@ -84,19 +90,7 @@ else
     filename = sprintf(filename_structure, subject, 'ssvepCFS');
     pf_filename = sprintf([filename_structure, '_beh.mat'], subject, 'pf');
 end
-if exist([filename, '_beh.mat'], 'file')
-    choice = input('\n Ya hay un archivo para este participante. Sustituirlo? (y/n): ');
-    if strcmpn(choice, 'no', 1)
-        return;
-    else
-        choice = input('\n El archivo se va a sustituir. Presiona enter para continuar. ');
-    end
-    % If there are previous files, rename them to separate them:
-    matFilesFound           = dir([filename '*']);
-    matFilesFound           = {matFilesFound.name};
-    newname_prev_matFile    = [filename, '_desc-try', num2str(length(matFilesFound)), '_beh.mat'];
-    movefile([filename, '_beh.mat'], newname_prev_matFile);
-end
+
 
 %% Blocks and trials
 % 1=Upright, 2=Inverted
@@ -118,14 +112,14 @@ elseif pf_estimation == 0 && exist(pf_filename, 'file')
     % When main task, check if there is pf file, and use the conditions
     % orders saved there:
     pf_expmnt =                 load(pf_filename, 'expmnt');
-    expmnt.block_conds_order =  pf_expmnt.main_task_block_conds_order;
+    expmnt.block_conds_order =  pf_expmnt.expmnt.main_task_block_conds_order;
 else
     % If this is the main stak, and there is no file for PF, run again the
     % counterbalance of blocks:
     if rand(1)>.5
-        expmnt.block_conds_order =  [1, 2, 2, 1, 1, 2];
+        expmnt.block_conds_order =  [1, 2, 2, 1];
     else
-        expmnt.block_conds_order =  [2, 1, 1, 2, 2, 1];
+        expmnt.block_conds_order =  [2, 1, 1, 2];
     end
 end
 % User defines if the task starts in a specific block:
@@ -171,6 +165,13 @@ elseif pf_estimation == 0 && exist(pf_filename, 'file')
         fprintf('\nEstimated alpha for invisible condition was too high, correcting into = 1 !! \n\n');
         expmnt.supp2__mask_alpha = 1;
     end
+    x = 0:.01:1;
+    figure; plot(x, uml_pf.fam.psycfun(x,...
+        uml_pf.fam.phi(end,1), uml_pf.fam.phi(end,2),...
+        uml_pf.fam.phi(end,3), uml_pf.fam.phi(end,4))); % Current phi
+    xlim([0, 1]); ylim([0, 1]); title(['Current estimation (phi)']);
+    xline(1-expmnt.supp1__mask_alpha);
+    xline(1-expmnt.supp2__mask_alpha, '--');
 % Then, if everything fails, use averages from previous studies:
 else
     expmnt.supp__values =       'Used the defaults (average from previous study)';
@@ -184,6 +185,20 @@ fprintf(' .......... Set alphas as: [ %.02f, %.02f ] .......\n',...
 % for CFS masks, and prints them on the command window:
 if any(find(strcmp(varargin, 'calculate_alpha')))
     return;
+end
+
+if exist([filename, '_beh.mat'], 'file')
+    choice = input('\n Ya hay un archivo para este participante. Sustituirlo? (y/n): ', 's');
+    if strncmp(choice, 'no', 1)
+        return;
+    else
+        choice = input('\n El archivo se va a sustituir. Presiona enter para continuar. ');
+    end
+    % If there are previous files, rename them to separate them:
+    matFilesFound           = dir([filename '*']);
+    matFilesFound           = {matFilesFound.name};
+    newname_prev_matFile    = [filename, '_desc-try', num2str(length(matFilesFound)), '_beh.mat'];
+    movefile([filename, '_beh.mat'], newname_prev_matFile);
 end
 
 %% 60 or 85 Hz
@@ -207,9 +222,11 @@ expmnt.baseline_hz =    3; % We can tinker this one; 3; 6;
 if pf_estimation 
     expmnt.fade_in_time =   0.5;
     expmnt.fade_out_time =  0.5;
+    expmnt.time_before_response_screen = .2;
 else
     expmnt.fade_in_time =   2;
     expmnt.fade_out_time =  2;
+    expmnt.time_before_response_screen = .2;
 end
 expmnt.odd_frequency =  5; % each 5th baseline stim, the oddball
 
@@ -231,14 +248,17 @@ else
     expmnt.Fixation_time =  [2, 1]; % Minimum 2 secs, rand number between 2-3
     expmnt.ITI =            [1, 2];
 end
-expmnt.simulate_responses = 1;
 expmnt.response_confidence = 0; % If 1, ask for response confidence 1-3
 expmnt.trial_conds_order =  repmat([0,1], length(expmnt.block_conds_order), expmnt.n_trials_per_block./2);
-expmnt.identities =     {'BarackObama','RaulCastro','DiazCanel',...
-                          'Beyonce','OmaraPortuondo','BlancaRosaBlanco',...
-                          'CamilaArteche','EdithMassola','LeoniTorres',...
-                          'DonaldTrump', 'IrelaBravo'};
-        
+if isfield(pf_expmnt.expmnt, 'identities')
+    expmnt.identities =     pf_expmnt.expmnt.identities;
+else
+    expmnt.identities =     {'BarackObama','RaulCastro','DiazCanel',...
+                              'Beyonce','OmaraPortuondo','BlancaRosaBlanco',...
+                              'CamilaArteche','EdithMassola','LeoniTorres',...
+                              'DonaldTrump', 'IrelaBravo'};
+end
+
 %% Set initial vars for trigger box:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 trigger_on = 1; trigger_off = 0;
@@ -715,76 +735,78 @@ for j = 1:length(expmnt.identities)
 end
 clearvars temp;
 
-% Selection screen:
-img_sx = 250; 
-img_sy = 250;
-images_per_screen = length(idx_response_faces);
-images_selected = zeros(1, length(idx_response_faces));
-response_given = 0;
-exit_experiment = 0;
-down_click = 0;
-KbQueueCreate([], responseKeys);
-KbQueueStart;
-KbQueueFlush();
-Screen('TextSize', w, expmnt.block_font_size+4);
-while response_given == 0
-    images_box = nan(4, length(idx_response_faces));
-    for index = 1:length(idx_response_faces)
-        [image_box, center] = convert_screen_positions(0, index, [img_sx, img_sy],...
-            [images_per_screen], [screenXpixels, screenYpixels]);
-        images_box(:,index) = CenterRectOnPointd(image_box.*.90, center(1), center(2));
-        clearvars temp;
-    end
-    Screen('DrawTextures', w, [loadedStim(idx_response_faces).theTexture],...
-        [], images_box, 0, [], [1-images_selected.*.75]);
-    for index = 1:length(idx_response_faces)
-        DrawFormattedText(w, expmnt.identities{index}, 'center', images_box(4,index), [1 1 1], [], [], [], [], [], images_box(:,index)');
-    end
-    DrawFormattedText(w, num2str(sum(images_selected)), screenXpixels-expmnt.font_size*2.5, expmnt.font_size*3, [.8 .8 .8]);
-    Screen('Flip', w);
-    
-    [mx, my, whichButton] = GetMouse(w);
-    if whichButton(1) == 1
-        for j = 1:size(images_box, 2)
-            if IsInRect(mx, my, images_box(:,j))
-                image_index = j;
-                image_down = image_index;
-                down_click = 1;
-            end
+if length(expmnt.identities) > 9
+    % Selection screen:
+    img_sx = 250; 
+    img_sy = 250;
+    images_per_screen = length(idx_response_faces);
+    images_selected = zeros(1, length(idx_response_faces));
+    response_given = 0;
+    exit_experiment = 0;
+    down_click = 0;
+    KbQueueCreate([], responseKeys);
+    KbQueueStart;
+    KbQueueFlush();
+    Screen('TextSize', w, expmnt.block_font_size+4);
+    while response_given == 0
+        images_box = nan(4, length(idx_response_faces));
+        for index = 1:length(idx_response_faces)
+            [image_box, center] = convert_screen_positions(0, index, [img_sx, img_sy],...
+                [images_per_screen], [screenXpixels, screenYpixels]);
+            images_box(:,index) = CenterRectOnPointd(image_box.*.90, center(1), center(2));
+            clearvars temp;
         end
-        WaitSecs(0.01);
-    elseif whichButton(1) == 0 && down_click == 1
-        for j = 1:size(images_box, 2)
-            if IsInRect(mx, my, images_box(:,j))
-                image_index = j;
-            end
+        Screen('DrawTextures', w, [loadedStim(idx_response_faces).theTexture],...
+            [], images_box, 0, [], [1-images_selected.*.75]);
+        for index = 1:length(idx_response_faces)
+            DrawFormattedText(w, expmnt.identities{index}, 'center', images_box(4,index), [1 1 1], [], [], [], [], [], images_box(:,index)');
         end
-        if image_down == image_index
-           if images_selected(image_index) == 0
-                images_selected(image_index) = 1;
-            elseif images_selected(image_index) == 1
-                images_selected(image_index) = 0;
-           end
-        end
-        image_index = 0;
-        down_click = 0;
-        WaitSecs(0.01);
-    end
+        DrawFormattedText(w, num2str(sum(images_selected)), screenXpixels-expmnt.font_size*2.5, expmnt.font_size*3, [.8 .8 .8]);
+        Screen('Flip', w);
 
-    % Collect keyboard response:
-    [pressed, firstPress] = KbQueueCheck;
-    if pressed
-        if firstPress(escapeKey) && sum(images_selected) == 9
-            exit_experiment = 1;
+        [mx, my, whichButton] = GetMouse(w);
+        if whichButton(1) == 1
+            for j = 1:size(images_box, 2)
+                if IsInRect(mx, my, images_box(:,j))
+                    image_index = j;
+                    image_down = image_index;
+                    down_click = 1;
+                end
+            end
+            WaitSecs(0.01);
+        elseif whichButton(1) == 0 && down_click == 1
+            for j = 1:size(images_box, 2)
+                if IsInRect(mx, my, images_box(:,j))
+                    image_index = j;
+                end
+            end
+            if image_down == image_index
+               if images_selected(image_index) == 0
+                    images_selected(image_index) = 1;
+                elseif images_selected(image_index) == 1
+                    images_selected(image_index) = 0;
+               end
+            end
+            image_index = 0;
+            down_click = 0;
+            WaitSecs(0.01);
         end
-    end
-    if exit_experiment == 1
-        expmnt.identities = expmnt.identities(logical(images_selected));
-        response_given = 1;
+
+        % Collect keyboard response:
+        [pressed, firstPress] = KbQueueCheck;
+        if pressed
+            if firstPress(escapeKey) && sum(images_selected) == 9
+                exit_experiment = 1;
+            end
+        end
+        if exit_experiment == 1
+            expmnt.identities = expmnt.identities(logical(images_selected));
+            response_given = 1;
+        end
     end
 end
 Screen('Flip', w);
-KbWait;
+WaitSecs(.5);
 Screen('TextSize', w, expmnt.block_font_size);
 
 % Select images for response screen:
@@ -830,7 +852,7 @@ Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, vergence
 Screen('Flip', w);
 if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
 WaitSecs(.1);
-if expmnt.debug_pt == 1
+if expmnt.debug_pt || expmnt.simulate_responses
     WaitSecs(2);
 else
     Screen('HideCursorHelper', w);
@@ -907,7 +929,7 @@ KbQueueFlush();
             
             if any(expmnt.pf_type_estimations == 5) % uml_pf.fam
                 uml_pf.fam = UML(exp06_uml_settings('fam_9AFC'));
-                simPhi0 = [0.60, 10, 0.1, 0.10];
+                simPhi0 = [0.80, 10, 0.1, 0.10];
                 uml_pf.fam.setPhi0(simPhi0); % This line for debugging.
                 uml_pf.fam.userdata01 = 'fam_9AFC';
                 pf_trial_count_fam = 0;
@@ -942,7 +964,7 @@ for block = expmnt.blockstart:length(expmnt.block_conds_order)
     Screen('Flip', w);
     WaitSecs(.5);
     if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
-    if expmnt.debug_pt == 1
+    if expmnt.debug_pt || expmnt.simulate_responses
         WaitSecs(3);
     else
         KbWait;
@@ -961,7 +983,7 @@ for block = expmnt.blockstart:length(expmnt.block_conds_order)
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, vergence_bars_orientations, [], []);
     Screen('Flip', w);
     if expmnt.savescreen; printscreenArray{end+1} = Screen('GetImage', w); end; %% Printscreen and save file.
-    if expmnt.debug_pt == 1
+    if expmnt.debug_pt || expmnt.simulate_responses
         WaitSecs(2);
     else
         KbWait;
@@ -1208,6 +1230,7 @@ for block = expmnt.blockstart:length(expmnt.block_conds_order)
                 fwrite(SerialPortObj, trigger_off, 'sync');
             end
         end
+        WaitSecs(expmnt.time_before_response_screen);
         
         % Positions of identities in response screen:
         Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions(:,1:4), vergence_bars_orientations(:,1:4), [], []);
@@ -1242,8 +1265,9 @@ for block = expmnt.blockstart:length(expmnt.block_conds_order)
                     response_correct = double(rand(1)>.5);
                     response_given = 1;
                 end
-            end
-            if pressed
+                trial_response_text = [];
+                trial_response_time = [];
+            elseif pressed
                 if firstPress(key1)
                     trial_response = 1;
                     trial_response_time = firstPress(key1);
@@ -1519,8 +1543,12 @@ for block = expmnt.blockstart:length(expmnt.block_conds_order)
     Screen('DrawLines', w, fixCoordsRight, fix_lineWidth, expmnt.fix_color, fix_position_right, 2);
     Screen('DrawTextures', w, vergence(1).tex, [], vergence_bars_positions, vergence_bars_orientations, [], []);
     Screen('Flip', w);
-    KbWait;
-    WaitSecs(.5);
+    if expmnt.debug_pt || expmnt.simulate_responses
+        WaitSecs(1);
+    else
+        KbWait;
+        WaitSecs(1);
+    end
     
     expmnt.frames_alpha =           1-flipped;
     expmnt.baseline_framerate =     baseline_framerate;
