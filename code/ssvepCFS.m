@@ -73,26 +73,7 @@ else
         expmnt.trigger = 1;
     end
 end
-%% Blocks and trials
-% 1=Upright, 2=Inverted
-if any(find(strcmp(varargin, 'blocks')))
-    expmnt.block_conds_order = varargin{find(strcmp(varargin, 'blocks')) + 1};
-else
-    if pf_estimation
-        expmnt.block_conds_order =  [1, 1, 1, 1, 1];
-    else
-        expmnt.block_conds_order =  [1, 2, 2, 1, 1, 2];
-    end
-end
-if any(find(strcmp(varargin, 'n_trials')))
-    expmnt.n_trials_per_block = varargin{find(strcmp(varargin, 'n_trials')) + 1};
-else
-    if pf_estimation
-        expmnt.n_trials_per_block = 30;
-    else
-        expmnt.n_trials_per_block = 10;
-    end
-end
+
 
 %% Filename
 %__________________________________________________________________________
@@ -104,11 +85,65 @@ else
     pf_filename = sprintf([filename_structure, '_beh.mat'], subject, 'pf');
 end
 if exist([filename, '_beh.mat'], 'file')
+    choice = input('\n Ya hay un archivo para este participante. Sustituirlo? (y/n): ');
+    if strcmpn(choice, 'no', 1)
+        return;
+    else
+        choice = input('\n El archivo se va a sustituir. Presiona enter para continuar. ');
+    end
     % If there are previous files, rename them to separate them:
     matFilesFound           = dir([filename '*']);
     matFilesFound           = {matFilesFound.name};
     newname_prev_matFile    = [filename, '_desc-try', num2str(length(matFilesFound)), '_beh.mat'];
     movefile([filename, '_beh.mat'], newname_prev_matFile);
+end
+
+%% Blocks and trials
+% 1=Upright, 2=Inverted
+if any(find(strcmp(varargin, 'blocks')))
+    % If user defined, set the block conditions by that:
+    expmnt.block_conds_order = varargin{find(strcmp(varargin, 'blocks')) + 1};
+elseif pf_estimation
+    % When PF estimation, block conditions are always about familiar faces,
+    % but set the order for the main task (counterbalance across
+    % participants):
+    expmnt.block_conds_order =  [1, 1];
+    % Counterbalance block order across participants:
+    if rand(1)>.5
+        expmnt.main_task_block_conds_order =  [1, 2, 2, 1, 1, 2];
+    else
+        expmnt.main_task_block_conds_order =  [2, 1, 1, 2, 2, 1];
+    end
+elseif pf_estimation == 0 && exist(pf_filename, 'file')
+    % When main task, check if there is pf file, and use the conditions
+    % orders saved there:
+    pf_expmnt =                 load(pf_filename, 'expmnt');
+    expmnt.block_conds_order =  pf_expmnt.main_task_block_conds_order;
+else
+    % If this is the main stak, and there is no file for PF, run again the
+    % counterbalance of blocks:
+    if rand(1)>.5
+        expmnt.block_conds_order =  [1, 2, 2, 1, 1, 2];
+    else
+        expmnt.block_conds_order =  [2, 1, 1, 2, 2, 1];
+    end
+end
+% User defines if the task starts in a specific block:
+% Useful when task was terminated previously by force.
+if any(find(strcmp(varargin, 'blockstart')))
+    expmnt.blockstart = varargin{find(strcmp(varargin, 'blockstart')) + 1};
+else
+    expmnt.blockstart = 1;
+end
+fprintf('\n .... Iniciando con el bloque: %i \n', expmnt.blockstart);
+if any(find(strcmp(varargin, 'n_trials')))
+    expmnt.n_trials_per_block = varargin{find(strcmp(varargin, 'n_trials')) + 1};
+else
+    if pf_estimation
+        expmnt.n_trials_per_block = 40;
+    else
+        expmnt.n_trials_per_block = 10;
+    end
 end
 
 %% Estimate alpha blending values for CFS masks
@@ -892,7 +927,7 @@ KbQueueFlush();
         end
     end
     
-for block = 1:length(expmnt.block_conds_order)
+for block = expmnt.blockstart:length(expmnt.block_conds_order)
 
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Screen: stereogram to confirm vergence.
