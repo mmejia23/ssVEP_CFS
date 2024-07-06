@@ -66,7 +66,12 @@ end
 if any(find(strcmp(varargin, 'triggers')))
     expmnt.trigger = varargin{find(strcmp(varargin, 'triggers')) + 1};
 else
-    expmnt.trigger = 1;
+    % Turn of triggers to TriggerBox when estimating PF:
+    if pf_estimation
+        expmnt.trigger = 0;
+    else
+        expmnt.trigger = 1;
+    end
 end
 %% Blocks and trials
 % 1=Upright, 2=Inverted
@@ -1258,11 +1263,8 @@ for block = 1:length(expmnt.block_conds_order)
                     response_correct = 0;
                     trial_response = [];
                     trial_response_time = [];
-                    if firstPress(escapeKey)
-                        closePT(SerialPortObj, expmnt.trigger);
-                        return;
-                    end
-                    break;
+                    closePT(SerialPortObj, expmnt.trigger);
+                    return;
                 end
                 if response_given
                     %% End of stimuli: trigger box
