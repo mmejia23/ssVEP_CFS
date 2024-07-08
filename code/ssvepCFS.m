@@ -54,7 +54,7 @@ addpath('SHINEtoolbox/');
 addpath('UML_ver2.2/');
 addpath('convert_screen_sizes');
 expmnt.savescreen =                 0;
-expmnt.PTB_SkipSyncTexts_config =   1;
+expmnt.PTB_SkipSyncTexts_config =   0;
 expmnt.BeampositionQueryWorkaround = 0;
 expmnt.set_custom_screen_size =     0;
 
