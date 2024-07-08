@@ -17,5 +17,5 @@
 %% Task 2: After estimation of alpha blending values:
 % Stereograms En orden: 1=L; 2=O; 3=P; 4=S; 5=T; 6=X; 7=Z;
 ssvepCFS('NombreParticipante', 'calculate_alpha');
-[data, expmnt] = ssvepCFS('NombreParticipante1', 'blockstart',1);
+[data, expmnt] = ssvepCFS('NombreParticipante', 'blockstart',1);
 
