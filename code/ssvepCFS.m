@@ -691,8 +691,12 @@ if length(expmnt.identities) > 9
         % Collect keyboard response:
         [pressed, firstPress] = KbQueueCheck;
         if pressed
-            if firstPress(escapeKey) && sum(images_selected) == 9
+            if firstPress(spaceKey) && sum(images_selected) == 9
                 exit_experiment = 1;
+            end
+            if firstPress(escapeKey)
+                closePT(SerialPortObj, expmnt.trigger);
+                return;
             end
         end
         if exit_experiment == 1
